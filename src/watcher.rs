@@ -1,15 +1,18 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use config::Messaging;
 use hiirc::{Channel, ChannelUser, Event, Listener, Irc};
 use icndb::next as get_awesome;
 use rsilio::MessagingService;
+use time::{Duration, Timespec, get_time};
 
 
 pub struct Watcher {
     channels: Vec<String>,
     watch_list: HashSet<String>,
     messaging: MessagingService,
+    sent_messages: HashMap<String, Option<Timespec>>,
+    message_frequency: Duration,
 }
 
 impl Watcher {
@@ -17,9 +20,29 @@ impl Watcher {
         Watcher {
             channels: channels.iter().cloned().collect(),
             watch_list: watch_list.iter().cloned().collect(),
-            messaging: MessagingService::new(messaging.sid.as_ref(),
-                                             messaging.token.as_ref(),
-                                             messaging.number.as_ref()),
+            sent_messages: HashMap::new(),
+            message_frequency: Duration::minutes(180),
+            messaging: MessagingService::new(
+                messaging.sid.as_ref(),
+                messaging.token.as_ref(),
+                messaging.number.as_ref()
+            ),
+        }
+    }
+
+    fn notify(&mut self, nick: &str) -> bool {
+        let entry = self.sent_messages.entry(nick.to_owned()).or_insert(None);
+        let frequency = self.message_frequency;
+        let can_send = entry.clone().map(|tm|
+            (get_time() - tm) > frequency
+        ).unwrap_or(true);
+
+        if can_send {
+            self.messaging.send_message("8063416455", &format!("heard from: {}", nick)).ok();
+            *entry = Some(get_time());
+            true
+        } else {
+            false
         }
     }
 }
@@ -33,9 +56,9 @@ impl Listener for Watcher {
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
         if self.watch_list.contains(&user.nickname) {
-            match self.messaging.send_message("8063416455", "Heard you.") {
-                Ok(res) => println!("Twilio response: {}", res),
-                Err(e) => println!("Failed to send: {}", e),
+            match self.notify(&user.nickname) {
+                true => println!("Notification sent"),
+                false => println!("Notification withheld"),
             }
         }
 
