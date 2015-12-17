@@ -35,9 +35,9 @@ impl Watcher {
 
     fn handle_message(&mut self, irc: &Irc, message: &Message) {
         // If we're in debug mode, print this message to the screen no matter what it is.
-        // if self.debug {
+        if self.debug {
             println!("{:?}", message);
-        // }
+        }
 
         // If there's no user prefix on this message, we can't determine
         // the user associated with it and there's nothing to do
