@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["J/A <archer884@gmail.com>"]
 
 [dependencies]
-getopts = "*"
 hiirc = "*"
 time = "*"
+toml = "*"
+icndb = { git = "https://github.com/archer884/icndb.git" }
