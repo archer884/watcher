@@ -8,3 +8,4 @@ hiirc = "*"
 time = "*"
 toml = "*"
 icndb = { git = "https://github.com/archer884/icndb.git" }
+rsilio = { git = "https://github.com/archer884/rsilio.git" }

@@ -24,6 +24,7 @@ pub struct Config {
 pub struct Messaging {
     pub sid: String,
     pub token: String,
+    pub number: String,
 }
 
 #[derive(Debug)]
@@ -60,6 +61,7 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 messaging: Messaging {
                     sid: try!(read_string("messaging.sid", &table)),
                     token: try!(read_string("messaging.token", &table)),
+                    number: try!(read_string("messaging.number", &table)),
                 },
                 watch_list: try!(read_array("bot.watch_list", &table)),
             })
@@ -69,13 +71,14 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
 
 fn read_string(element: &str, table: &Value) -> Result<String, ConfigError> {
     table.lookup(element)
-        .and_then(|element| element.as_str().map(|s| s.to_owned()))
-        .ok_or(ConfigError::MissingElement(element.to_owned()))
+         .and_then(|element| element.as_str().map(|s| s.to_owned()))
+         .ok_or(ConfigError::MissingElement(element.to_owned()))
 }
 
 fn read_array(element: &str, table: &Value) -> Result<Vec<String>, ConfigError> {
     table.lookup(element)
-        .and_then(|element| element.as_slice().map(|slice| {
+         .and_then(|element| {
+             element.as_slice().map(|slice| {
             // This collects all valid elements of the element collection but will silently drop
             // any invalid elements. I do not know what would consitute an invalid element.
             // Possibly a numeric value?
@@ -83,6 +86,7 @@ fn read_array(element: &str, table: &Value) -> Result<Vec<String>, ConfigError> 
                 .map(|element| element.as_str().map(|s| s.to_owned()))
                 .filter_map(|s| s)
                 .collect()
-        }))
-        .ok_or(ConfigError::MissingElement(element.to_owned()))
+        })
+         })
+         .ok_or(ConfigError::MissingElement(element.to_owned()))
 }

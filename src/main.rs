@@ -1,5 +1,6 @@
 extern crate hiirc;
 extern crate icndb;
+extern crate rsilio;
 extern crate time;
 extern crate toml;
 
@@ -15,14 +16,16 @@ use watcher::Watcher;
 fn main() {
     match config::read_config(&std::env::args().nth(1).unwrap_or("bot.toml".to_owned())) {
         Err(e) => panic!("{:?}", e),
-        Ok(config) => match run_bot(config) {
-            Ok(_) => println!("Running..."),
-            Err(e) => println!("{:?}", e),
+        Ok(ref config) => {
+            match run_bot(config) {
+                Ok(_) => println!("Running..."),
+                Err(e) => println!("{:?}", e),
+            }
         }
     }
 }
 
-fn run_bot(config: Config) -> Result<(), hiirc::Error> {
+fn run_bot(config: &Config) -> Result<(), hiirc::Error> {
     Settings::new(&config.server.address, &config.user.nick)
         .username(&config.user.user)
         .realname(&config.user.real)
@@ -32,9 +35,7 @@ fn run_bot(config: Config) -> Result<(), hiirc::Error> {
             delay_after_disconnect: Duration::seconds(15),
         })
         .auto_ping(true)
-        .dispatch(Watcher::new(
-            &config.server.channels,
-            &config.watch_list,
-            config.messaging,
-        ))
+        .dispatch(Watcher::new(&config.server.channels,
+                               &config.watch_list,
+                               &config.messaging))
 }
