@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use config::Messaging;
-use hiirc::{Channel, ChannelUser, Event, Listener, Irc};
+use config::Config;
+use hiirc::{Channel, ChannelUser, Code, Event, Listener, Message, Prefix, Irc};
 use icndb::next as get_awesome;
 use rsilio::MessagingService;
 use time::{Duration, Timespec, get_time};
-
 
 pub struct Watcher {
     channels: Vec<String>,
@@ -16,29 +15,53 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub fn new(channels: &[String], watch_list: &[String], messaging: &Messaging) -> Watcher {
+    pub fn from_config(config: &Config) -> Watcher {
         Watcher {
-            channels: channels.iter().cloned().collect(),
-            watch_list: watch_list.iter().cloned().collect(),
+            channels: config.server.channels.iter().cloned().collect(),
+            watch_list: config.watch_list.iter().cloned().collect(),
             sent_messages: HashMap::new(),
-            message_frequency: Duration::minutes(180),
+            message_frequency: config.message_frequency,
             messaging: MessagingService::new(
-                messaging.sid.as_ref(),
-                messaging.token.as_ref(),
-                messaging.number.as_ref()
+                config.messaging.sid.as_ref(),
+                config.messaging.token.as_ref(),
+                config.messaging.number.as_ref()
             ),
         }
     }
 
-    fn notify(&mut self, nick: &str) -> bool {
+    fn handle_message(&mut self, message: &Message) {
+        // If there's no user prefix on this message, we can't determine
+        // the user associated with it and there's nothing to do
+        match message.prefix {
+            Some(Prefix::User(ref user)) => {
+                if message.code == Code::Join && self.watch_list.contains(&user.nickname) {
+                    let channel = message.args.get(0)
+                        .map(|s| s.as_ref())
+                        .unwrap_or("unknown channel");
+
+                    self.notify(&user.nickname, &channel);
+                }
+            }
+
+            // We have no other cases to handle at present, but... Whatever
+            _ => (),
+        }
+    }
+
+    fn notify(&mut self, nick: &str, channel: &str) -> bool {
         let entry = self.sent_messages.entry(nick.to_owned()).or_insert(None);
         let frequency = self.message_frequency;
+
         let can_send = entry.clone().map(|tm|
             (get_time() - tm) > frequency
         ).unwrap_or(true);
 
         if can_send {
-            self.messaging.send_message("8063416455", &format!("heard from: {}", nick)).ok();
+            self.messaging.send_message(
+                "8063416455",
+                &format!("{} has joined {}", nick, channel)
+            ).ok();
+
             *entry = Some(get_time());
             true
         } else {
@@ -50,18 +73,13 @@ impl Watcher {
 impl Listener for Watcher {
     #[allow(unused)]
     fn any(&mut self, _: &Irc, event: &Event) {
-        // Don't log everything for now...
-        // println!("{:?}", event);
+        if let &Event::Message(ref message) = event {
+            self.handle_message(&message);
+        }
     }
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
-        if self.watch_list.contains(&user.nickname) {
-            match self.notify(&user.nickname) {
-                true => println!("Notification sent"),
-                false => println!("Notification withheld"),
-            }
-        }
-
+        // Chuck Norris crap
         if msg.starts_with(".chuck") {
             println!("{} has requested some CHUCK ACTION!", user.nickname);
             match get_awesome() {

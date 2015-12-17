@@ -35,7 +35,5 @@ fn run_bot(config: &Config) -> Result<(), hiirc::Error> {
             delay_after_disconnect: Duration::seconds(15),
         })
         .auto_ping(true)
-        .dispatch(Watcher::new(&config.server.channels,
-                               &config.watch_list,
-                               &config.messaging))
+        .dispatch(Watcher::from_config(config))
 }

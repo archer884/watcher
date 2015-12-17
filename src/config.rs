@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Read;
 
 use toml::Value;
+use time::Duration;
 
 pub struct Server {
     pub address: String,
@@ -19,6 +20,7 @@ pub struct Config {
     pub user: User,
     pub messaging: Messaging,
     pub watch_list: Vec<String>,
+    pub message_frequency: Duration,
 }
 
 pub struct Messaging {
@@ -64,6 +66,9 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                     number: try!(read_string("messaging.number", &table)),
                 },
                 watch_list: try!(read_array("bot.watch_list", &table)),
+                message_frequency: Duration::minutes(
+                    try!(read_int("bot.message_frequency", &table))
+                ),
             })
         }
     }
@@ -89,4 +94,10 @@ fn read_array(element: &str, table: &Value) -> Result<Vec<String>, ConfigError> 
         })
          })
          .ok_or(ConfigError::MissingElement(element.to_owned()))
+}
+
+fn read_int(element: &str, table: &Value) -> Result<i64, ConfigError> {
+    table.lookup(element)
+        .and_then(|element| element.as_integer())
+        .ok_or(ConfigError::MissingElement(element.to_owned()))
 }
