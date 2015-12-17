@@ -99,12 +99,8 @@ impl Listener for Watcher {
     }
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
-        // If this message is on a channel not on our join list, it's a private message and we
-        // want to handle it differently, theoretically... I think we just want to print it to
-        // the console right now. We could be using a hashset for this, but... Yeah. That's just
-        // not going to be a significant performance boost for a bot in only a few channels.
-        if !self.channels.contains(&channel.name) {
-            println!("PM from {}: {}", user.nickname, msg);
+        if self.watch_list.contains(&user.nickname) {
+            println!("{}: {}", user.nickname, msg);
         }
 
         // Chuck Norris crap

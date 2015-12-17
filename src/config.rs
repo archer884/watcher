@@ -62,10 +62,10 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 // At some point, you should make this part optional; not everyone's going to
                 // want to send text messages, after all...
                 messaging: Messaging {
-                    sid: try!(read_string("messaging.sid", &table)),
-                    token: try!(read_string("messaging.token", &table)),
-                    number: try!(read_string("messaging.number", &table)),
-                    recipient: try!(read_string("messaging.recipient", &table)),
+                    sid: try!(read_string("twilio.sid", &table)),
+                    token: try!(read_string("twilio.token", &table)),
+                    number: try!(read_string("twilio.number", &table)),
+                    recipient: try!(read_string("twilio.recipient", &table)),
                 },
                 watch_list: try!(read_array("bot.watch_list", &table)),
                 message_frequency: Duration::minutes(
