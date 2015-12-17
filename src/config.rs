@@ -27,6 +27,7 @@ pub struct Messaging {
     pub sid: String,
     pub token: String,
     pub number: String,
+    pub recipient: String,
 }
 
 #[derive(Debug)]
@@ -64,6 +65,7 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                     sid: try!(read_string("messaging.sid", &table)),
                     token: try!(read_string("messaging.token", &table)),
                     number: try!(read_string("messaging.number", &table)),
+                    recipient: try!(read_string("messaging.recipient", &table)),
                 },
                 watch_list: try!(read_array("bot.watch_list", &table)),
                 message_frequency: Duration::minutes(

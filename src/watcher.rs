@@ -11,6 +11,7 @@ pub struct Watcher {
     watch_list: HashSet<String>,
     messaging: MessagingService,
     sent_messages: HashMap<String, Option<Timespec>>,
+    message_recipient: String,
     message_frequency: Duration,
 }
 
@@ -20,6 +21,7 @@ impl Watcher {
             channels: config.server.channels.iter().cloned().collect(),
             watch_list: config.watch_list.iter().cloned().collect(),
             sent_messages: HashMap::new(),
+            message_recipient: config.messaging.recipient.to_owned(),
             message_frequency: config.message_frequency,
             messaging: MessagingService::new(
                 config.messaging.sid.as_ref(),
@@ -58,7 +60,7 @@ impl Watcher {
 
         if can_send {
             self.messaging.send_message(
-                "8063416455",
+                &self.message_recipient,
                 &format!("{} has joined {}", nick, channel)
             ).ok();
 
