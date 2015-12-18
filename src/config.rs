@@ -18,12 +18,12 @@ pub struct User {
 pub struct Config {
     pub server: Server,
     pub user: User,
-    pub messaging: Messaging,
+    pub twilio: Twilio,
     pub watch_list: Vec<String>,
     pub message_frequency: Duration,
 }
 
-pub struct Messaging {
+pub struct Twilio {
     pub sid: String,
     pub token: String,
     pub number: String,
@@ -61,7 +61,7 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
 
                 // At some point, you should make this part optional; not everyone's going to
                 // want to send text messages, after all...
-                messaging: Messaging {
+                twilio: Twilio {
                     sid: try!(read_string("twilio.sid", &table)),
                     token: try!(read_string("twilio.token", &table)),
                     number: try!(read_string("twilio.number", &table)),
@@ -83,9 +83,8 @@ fn read_string(element: &str, table: &Value) -> Result<String, ConfigError> {
 }
 
 fn read_array(element: &str, table: &Value) -> Result<Vec<String>, ConfigError> {
-    table.lookup(element)
-         .and_then(|element| {
-             element.as_slice().map(|slice| {
+    table.lookup(element).and_then(|element| {
+        element.as_slice().map(|slice| {
             // This collects all valid elements of the element collection but will silently drop
             // any invalid elements. I do not know what would consitute an invalid element.
             // Possibly a numeric value?
@@ -94,8 +93,7 @@ fn read_array(element: &str, table: &Value) -> Result<Vec<String>, ConfigError> 
                 .filter_map(|s| s)
                 .collect()
         })
-         })
-         .ok_or(ConfigError::MissingElement(element.to_owned()))
+    }).ok_or(ConfigError::MissingElement(element.to_owned()))
 }
 
 fn read_int(element: &str, table: &Value) -> Result<i64, ConfigError> {

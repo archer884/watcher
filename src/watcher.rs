@@ -1,18 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use config::Config;
 use hiirc::{Channel, ChannelUser, Code, Event, Listener, Message, Prefix, Irc};
 use icndb::next as get_awesome;
-use rsilio::MessagingService;
-use time::{Duration, Timespec, get_time};
+use notifications::{NotificationService, Sms};
 
 pub struct Watcher {
     channels: Vec<String>,
     watch_list: HashSet<String>,
-    messaging: MessagingService,
-    sent_messages: HashMap<String, Option<Timespec>>,
-    message_recipient: String,
-    message_frequency: Duration,
+    messaging: NotificationService<Sms>,
     debug: bool,
 }
 
@@ -21,14 +17,7 @@ impl Watcher {
         Watcher {
             channels: config.server.channels.iter().cloned().collect(),
             watch_list: config.watch_list.iter().cloned().collect(),
-            sent_messages: HashMap::new(),
-            message_recipient: config.messaging.recipient.to_owned(),
-            message_frequency: config.message_frequency,
-            messaging: MessagingService::new(
-                config.messaging.sid.as_ref(),
-                config.messaging.token.as_ref(),
-                config.messaging.number.as_ref()
-            ),
+            messaging: create_notification_service(config),
             debug: false,
         }
     }
@@ -49,13 +38,13 @@ impl Watcher {
                         .map(|s| s.as_ref())
                         .unwrap_or("unknown channel");
 
-                    self.notify(&user.nickname, &channel);
+                    self.messaging.notify_channel(&user.nickname, &channel);
                 },
 
                 // Bot has received private message; for right now, we're just going to respond
                 // that we're AFK and call it good. Later on, we could handle these messages the
-                // way we handle channel messages.
-                Code::Privmsg => {
+                // way we handle channel messages. It is unbelievably complicated to detect a pm.
+                Code::Privmsg if message.args.get(0).map(|s| s.as_ref()) == Some("UnendingWatcher") => {
                     irc.privmsg(&user.nickname, "AFK").ok();
                 },
 
@@ -65,27 +54,6 @@ impl Watcher {
 
             // We have no other cases to handle at present, but... Whatever
             _ => (),
-        }
-    }
-
-    fn notify(&mut self, nick: &str, channel: &str) -> bool {
-        let entry = self.sent_messages.entry(nick.to_owned()).or_insert(None);
-        let frequency = self.message_frequency;
-
-        let can_send = entry.clone().map(|tm|
-            (get_time() - tm) > frequency
-        ).unwrap_or(true);
-
-        if can_send {
-            self.messaging.send_message(
-                &self.message_recipient,
-                &format!("{} has joined {}", nick, channel)
-            ).ok();
-
-            *entry = Some(get_time());
-            true
-        } else {
-            false
         }
     }
 }
@@ -134,4 +102,16 @@ impl Listener for Watcher {
             irc.join(channel, None).ok();
         }
     }
+}
+
+fn create_notification_service(config: &Config) -> NotificationService<Sms> {
+    NotificationService::new(
+        Sms::new(
+            config.twilio.sid.as_ref(),
+            config.twilio.token.as_ref(),
+            config.twilio.number.as_ref(),
+        ),
+        config.twilio.recipient.as_ref(),
+        config.message_frequency,
+    )
 }

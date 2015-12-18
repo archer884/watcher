@@ -8,6 +8,7 @@ use hiirc::{ReconnectionSettings, Settings};
 use time::Duration;
 
 mod config;
+mod notifications;
 mod watcher;
 
 use config::Config;
