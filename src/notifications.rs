@@ -37,13 +37,18 @@ impl<T: NotificationSink> NotificationService<T> {
     /// Notifies the user that a watched nick has entered a watched channel
     pub fn notify_channel(&mut self, nick: &str, channel: &str) -> NotificationResult {
         if self.can_send(nick) {
-            let ret = self.sink.send_message(
-                &self.recipient,
-                &format!("{} has joined {}", nick, channel)
-            );
-
             self.update_sent(nick);
-            ret
+            self.sink.send_message(&self.recipient, &format!("{} has joined {}", nick, channel))
+        } else {
+            NotificationResult::Withheld
+        }
+    }
+
+    /// Notifies the user that the bot has recieved a private message
+    pub fn notify_pm(&mut self, nick: &str, message: &str) -> NotificationResult {
+        if self.can_send(nick) {
+            self.update_sent(nick);
+            self.sink.send_message(&self.recipient, &format!("PM from {}: {}", nick, message))
         } else {
             NotificationResult::Withheld
         }

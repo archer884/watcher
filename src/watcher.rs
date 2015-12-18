@@ -46,6 +46,12 @@ impl Watcher {
                 // way we handle channel messages. It is unbelievably complicated to detect a pm.
                 Code::Privmsg if message.args.get(0).map(|s| s.as_ref()) == Some("UnendingWatcher") => {
                     irc.privmsg(&user.nickname, "AFK").ok();
+
+                    // Going to try letting the user know that the bot has received a PM, just...
+                    self.messaging.notify_pm(
+                        &user.nickname,
+                        message.args.get(0).map(|s| s.as_ref()).unwrap_or("")
+                    );
                 },
 
                 // This is an event code we don't cover yet
@@ -67,7 +73,7 @@ impl Listener for Watcher {
     }
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
-        if self.watch_list.contains(&user.nickname) {
+        if self.watch_list.contains(&user.nickname) || msg.contains("UnendingWatcher") {
             println!("{}: {}", user.nickname, msg);
         }
 
