@@ -1,24 +1,31 @@
 use std::collections::HashSet;
 
-use config::Config;
+use config::{Config, User};
 use hiirc::{Channel, ChannelUser, Code, Event, Listener, Message, Prefix, Irc};
 use icndb::next as get_awesome;
 use notifications::{NotificationService, Sms};
+use command::Command;
 
 pub struct Watcher {
-    channels: Vec<String>,
+    identity: User,
+    channels: HashSet<String>,
     watch_list: HashSet<String>,
     messaging: NotificationService<Sms>,
     debug: bool,
+    admin: String,
+    topic: String,
 }
 
 impl Watcher {
     pub fn from_config(config: &Config) -> Watcher {
         Watcher {
+            identity: config.user.clone(),
             channels: config.server.channels.iter().cloned().collect(),
             watch_list: config.watch_list.iter().cloned().collect(),
             messaging: create_notification_service(config),
             debug: false,
+            admin: config.admin.to_owned(),
+            topic: config.topic.to_owned(),
         }
     }
 
@@ -28,16 +35,25 @@ impl Watcher {
             println!("{:?}", message);
         }
 
+        // We're going to need the channel later on
+        let channel = message.args.get(0)
+            .map(|s| s.as_ref())
+            .unwrap_or("unknown channel");
+
         // If there's no user prefix on this message, we can't determine
         // the user associated with it and there's nothing to do
         match message.prefix {
             Some(Prefix::User(ref user)) => match message.code {
+                // Bot admin has joined channel
+                Code::Join if self.is_admin(&user.nickname) => {
+                    match irc.raw(format!("MODE {} +o {}", channel, user.nickname)) {
+                        Err(e) => println!("{:?}", e),
+                        Ok(_) => println!("+o {}", user.nickname),
+                    }
+                }
+
                 // Watched user has joined channel
                 Code::Join if self.watch_list.contains(&user.nickname) => {
-                    let channel = message.args.get(0)
-                        .map(|s| s.as_ref())
-                        .unwrap_or("unknown channel");
-
                     self.messaging.notify_channel(&user.nickname, &channel);
                 },
 
@@ -45,6 +61,11 @@ impl Watcher {
                 // that we're AFK and call it good. Later on, we could handle these messages the
                 // way we handle channel messages. It is unbelievably complicated to detect a pm.
                 Code::Privmsg if message.args.get(0).map(|s| s.as_ref()) == Some("UnendingWatcher") => {
+                    // Hack to ignore StatServ
+                    if user.nickname == "StatServ" {
+                        return;
+                    }
+
                     irc.privmsg(&user.nickname, "AFK").ok();
 
                     // Going to try letting the user know that the bot has received a PM, just...
@@ -62,6 +83,66 @@ impl Watcher {
             _ => (),
         }
     }
+
+    fn handle_command(&mut self, irc: &Irc, channel: &Channel, nick: &str, command: &str) {
+        if let Some(command) = command.parse::<Command>().ok() {
+            match command {
+                Command::Chuck => {
+                    println!("{} has requested some CHUCK ACTION!", nick);
+                    match get_awesome() {
+                        None => irc.privmsg(&channel.name, "Sorry, I can't think of one."),
+                        Some(res) => irc.privmsg(&channel.name, &res.joke),
+                    }
+                    .ok();
+                }
+
+                // Bot settings
+                Command::SetNick(ref nick) => {
+                    if self.is_admin(nick) && irc.nick(nick).is_ok() {
+                        self.identity.nick = nick.to_owned();
+                    }
+                },
+                Command::SetDebug(enabled) => {
+                    if self.is_admin(nick) {
+                        self.debug = enabled;
+                        println!("debug mode {}", if enabled { "enabled" } else { "disabled" });
+                    }
+                },
+
+                // Channel commands
+                Command::JoinChannel(ref channel) => {
+                    if self.is_admin(nick) && !self.channels.contains(channel) && irc.join(channel, None).is_ok() {
+                        self.channels.insert(channel.to_owned());
+                    }
+                },
+                Command::LeaveChannel(ref channel) => {
+                    if self.is_admin(nick) && self.channels.contains(channel) && irc.part(channel, None).is_ok() {
+                        self.channels.remove(channel);
+                    }
+                },
+
+                // Admin options
+                Command::SetTopic(ref topic) => {
+                    if self.is_admin(nick) {
+                        match irc.set_topic(&channel.name, topic) {
+                            Err(e) => println!("{:?}", e),
+                            Ok(_) => println!("{}: {}", channel.name, topic),
+                        }
+                    }
+                }
+                Command::SetGreeting(ref greeting) => {
+                    // In theory, this will be used to set the greeting the bot uses for people who enter its channel
+                }
+                Command::Kill => {
+                    irc.close().ok();
+                }
+            }
+        }
+    }
+
+    fn is_admin(&self, nick: &str) -> bool {
+        self.admin == nick
+    }
 }
 
 impl Listener for Watcher {
@@ -73,24 +154,14 @@ impl Listener for Watcher {
     }
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
+        // Log watched user chat
         if self.watch_list.contains(&user.nickname) || msg.contains("UnendingWatcher") {
             println!("{}: {}", user.nickname, msg);
         }
 
-        // Chuck Norris crap
-        if msg.starts_with(".chuck") {
-            println!("{} has requested some CHUCK ACTION!", user.nickname);
-            match get_awesome() {
-                None => irc.privmsg(&channel.name, "Sorry, I can't think of one."),
-                Some(res) => irc.privmsg(&channel.name, &res.joke),
-            }
-            .ok();
-        }
-
-        // Debug flag toggle
-        if msg.starts_with(".debug") {
-            println!("toggle debug mode");
-            self.debug = !self.debug;
+        // Handle public chat commands
+        if msg.starts_with(".") {
+            self.handle_command(irc, channel, &user.nickname, msg);
         }
     }
 
@@ -106,9 +177,14 @@ impl Listener for Watcher {
         // join all our channels
         for channel in &self.channels {
             irc.join(channel, None).ok();
+            match irc.set_topic(channel, &self.topic) {
+                Err(e) => println!("{:?}", e),
+                Ok(_) => println!("{}: {}", channel, self.topic),
+            }
         }
     }
 }
+
 
 fn create_notification_service(config: &Config) -> NotificationService<Sms> {
     NotificationService::new(

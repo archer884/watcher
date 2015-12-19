@@ -1,3 +1,5 @@
+#![feature(slice_patterns)]
+
 extern crate hiirc;
 extern crate icndb;
 extern crate rsilio;
@@ -7,6 +9,7 @@ extern crate toml;
 use hiirc::{ReconnectionSettings, Settings};
 use time::Duration;
 
+mod command;
 mod config;
 mod notifications;
 mod watcher;

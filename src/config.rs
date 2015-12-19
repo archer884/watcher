@@ -9,6 +9,7 @@ pub struct Server {
     pub channels: Vec<String>,
 }
 
+#[derive(Clone)]
 pub struct User {
     pub nick: String,
     pub user: String,
@@ -21,6 +22,8 @@ pub struct Config {
     pub twilio: Twilio,
     pub watch_list: Vec<String>,
     pub message_frequency: Duration,
+    pub admin: String,
+    pub topic: String,
 }
 
 pub struct Twilio {
@@ -71,6 +74,8 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 message_frequency: Duration::minutes(
                     try!(read_int("bot.message_frequency", &table))
                 ),
+                admin: try!(read_string("bot.admin", &table)),
+                topic: try!(read_string("bot.topic", &table)),
             })
         }
     }
