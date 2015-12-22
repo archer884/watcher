@@ -53,7 +53,7 @@ impl Watcher {
 
                 // Any user has joined an admin channel OR a watched user has joined any channel
                 Code::Join => {
-                    if self.channels.contains_key(channel) || self.watch_list.contains(&user.nickname) {
+                    if self.admin_channel(&channel) || self.watching(&user.nickname) {
                         self.messaging.notify_channel(&user.nickname, &channel);
                     }
                 },
@@ -151,6 +151,17 @@ impl Watcher {
 
     fn is_admin(&self, nick: &str) -> bool {
         self.admin == nick
+    }
+
+    fn admin_channel(&self, channel: &str) -> bool {
+        match self.channels.get(channel) {
+            None => false,
+            Some(ref channel) => channel.admin
+        }
+    }
+
+    fn watching(&self, nick: &str) -> bool {
+        self.watch_list.contains(nick)
     }
 }
 
