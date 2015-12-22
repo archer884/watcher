@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 use command::Command;
 use config::{Config, ServerChannel, User};
 use hiirc::{Channel, ChannelUser, Code, Event, Listener, Message, Prefix, Irc};
-use icndb::next as get_awesome;
 use notifications::{NotificationService, Sms};
 use time::Duration;
 
@@ -14,6 +13,26 @@ pub struct Watcher {
     watch_list: HashSet<String>,
     messaging: NotificationService<Sms>,
     debug: bool,
+}
+
+struct CommandContext<'a> {
+    pub watcher: &'a Watcher,
+    pub irc: &'a Irc,
+    pub channel: &'a str,
+    pub nick: &'a str,
+    pub command: Command,
+}
+
+impl<'a> From<(&'a mut Watcher, &'a Irc, &'a str, &'a str, Command)> for CommandContext<'a> {
+    fn from(tuple: (&'a mut Watcher, &'a Irc, &'a str, &'a str, Command)) -> Self {
+        CommandContext {
+            watcher: tuple.0,
+            irc: tuple.1,
+            channel: tuple.2,
+            nick: tuple.3,
+            command: tuple.4
+        }
+    }
 }
 
 impl Watcher {
@@ -90,61 +109,27 @@ impl Watcher {
         }
     }
 
+    // TODO: change this so that we're not *just* parsing the command, but also validating the
+    // user's permissions before we actually get to dispatching the command.
     fn handle_command(&mut self, irc: &Irc, channel: &str, nick: &str, command: &str) {
         if let Some(command) = command.parse::<Command>().ok() {
             match command {
-                Command::Chuck => {
-                    println!("{} has requested some CHUCK ACTION!", nick);
-                    match get_awesome() {
-                        None => irc.privmsg(channel, "Sorry, I can't think of one."),
-                        Some(res) => irc.privmsg(channel, &res.joke),
-                    }
-                    .ok();
-                }
+                Command::Chuck => commands::chuck(irc, channel, nick),
 
                 // Bot settings
-                Command::SetNick(ref nick) => {
-                    if self.is_admin(nick) && irc.nick(nick).is_ok() {
-                        self.identity.nick = nick.to_owned();
-                    }
-                },
-                Command::SetDebug(enabled) => {
-                    if self.is_admin(nick) {
-                        self.debug = enabled;
-                        println!("debug mode {}", if enabled { "enabled" } else { "disabled" });
-                    }
-                },
+                Command::SetNick(ref new_nick) if self.is_admin(nick) => commands::set_nick(self, irc, new_nick),
+                Command::SetDebug(enabled) if self.is_admin(nick) => commands::set_debug(self, enabled),
 
                 // Channel commands
-                Command::JoinChannel(ref channel) => {
-                    if self.is_admin(nick) && !self.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
-                        self.channels.insert(
-                            channel.to_owned(),
-                            ServerChannel { name: channel.to_owned(), topic: None, admin: false, log_chat: true },
-                        );
-                    }
-                },
-                Command::LeaveChannel(ref channel) => {
-                    if self.is_admin(nick) && self.channels.contains_key(channel) && irc.part(channel, None).is_ok() {
-                        self.channels.remove(channel);
-                    }
-                },
+                Command::JoinChannel(ref channel) if self.is_admin(nick) => commands::join_channel(self, irc, channel),
+                Command::LeaveChannel(ref channel) if self.is_admin(nick) => commands::leave_channel(self, irc, channel),
 
                 // Admin options
-                Command::SetTopic(ref topic) => {
-                    if self.is_admin(nick) {
-                        match irc.set_topic(channel, topic) {
-                            Err(e) => println!("{:?}", e),
-                            Ok(_) => println!("{}: {}", channel, topic),
-                        }
-                    }
-                }
-                Command::SetGreeting(ref greeting) => {
-                    // In theory, this will be used to set the greeting the bot uses for people who enter its channel
-                }
-                Command::Kill => {
-                    irc.close().ok();
-                }
+                Command::SetTopic(ref topic) if self.is_admin(nick) => commands::set_topic(self, irc, channel, topic),
+                Command::SetGreeting(ref greeting) => (), // In theory, this will be used to set the greeting the bot uses for people who enter its channel
+                Command::Kill => (), // irc.close().ok() // this was used to kill the IRC connection, but that results in Bad Things(TM)
+
+                _ => (), // probably an unauthorized command
             }
         }
     }
@@ -208,7 +193,6 @@ impl Listener for Watcher {
     }
 }
 
-
 fn create_notification_service(config: &Config) -> NotificationService<Sms> {
     NotificationService::new(
         Sms::new(
@@ -219,4 +203,59 @@ fn create_notification_service(config: &Config) -> NotificationService<Sms> {
         config.twilio.recipient.as_ref(),
         Duration::minutes(config.bot.message_frequency),
     )
+}
+
+mod commands {
+    use super::Watcher;
+
+    use config::ServerChannel;
+    use icndb::next as get_awesome;
+    use hiirc::Irc;
+
+    pub fn chuck(irc: &Irc, channel: &str, nick: &str) {
+        println!("{} has requested some CHUCK ACTION!", nick);
+        match get_awesome() {
+            None => irc.privmsg(channel, "Sorry, I can't think of one."),
+            Some(res) => irc.privmsg(channel, &res.joke),
+        }
+        .ok();
+    }
+
+    pub fn set_nick(watcher: &mut Watcher, irc: &Irc, nick: &str) {
+        if irc.nick(nick).is_ok() {
+            watcher.identity.nick = nick.to_owned();
+        }
+    }
+
+    pub fn set_debug(watcher: &mut Watcher, enabled: bool) {
+        watcher.debug = enabled;
+        println!("debug mode {}", if enabled { "enabled" } else { "disabled" });
+    }
+
+    pub fn join_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
+        if !watcher.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
+            watcher.channels.insert(
+                channel.to_owned(),
+                ServerChannel { name: channel.to_owned(), topic: None, admin: false, log_chat: true },
+            );
+        }
+    }
+
+    pub fn leave_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
+        if watcher.channels.contains_key(channel) && irc.part(channel, None).is_ok() {
+            watcher.channels.remove(channel);
+        }
+    }
+
+    // Watcher is unused here because currently we're just setting the topic on the server, but
+    // the idea is that we'll be storing the topic string as part of the ServerChannel object in
+    // our list of channels, so, for the future, I'm leaving the Watcher object as part of this
+    // function signature.
+    #[allow(unused)]
+    pub fn set_topic(watcher: &mut Watcher, irc: &Irc, channel: &str, topic: &str) {
+        match irc.set_topic(channel, topic) {
+            Err(e) => println!("{:?}", e),
+            Ok(_) => println!("{}: {}", channel, topic),
+        }
+    }
 }
