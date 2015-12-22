@@ -53,7 +53,10 @@ impl Watcher {
                 }
 
                 // Watched user has joined channel
-                Code::Join if self.watch_list.contains(&user.nickname) => {
+                // Actually, for right now, we want notifications about everyone, because we only
+                // have Watcher running in channels where we want admin information...
+                //Code::Join if self.watch_list.contains(&user.nickname) => {
+                Code::Join => {
                     self.messaging.notify_channel(&user.nickname, &channel);
                 },
 
@@ -154,10 +157,10 @@ impl Listener for Watcher {
     }
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
-        // Log watched user chat
-        if self.watch_list.contains(&user.nickname) || msg.contains("UnendingWatcher") {
+        // Log chat
+        // if self.watch_list.contains(&user.nickname) || msg.contains("UnendingWatcher") {
             println!("{}: {}", user.nickname, msg);
-        }
+        // }
 
         // Handle public chat commands
         if msg.starts_with(".") {
