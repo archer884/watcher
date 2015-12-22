@@ -1,31 +1,30 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use config::{Config, User};
+use command::Command;
+use config::{Config, ServerChannel, User};
 use hiirc::{Channel, ChannelUser, Code, Event, Listener, Message, Prefix, Irc};
 use icndb::next as get_awesome;
 use notifications::{NotificationService, Sms};
-use command::Command;
+use time::Duration;
 
 pub struct Watcher {
+    admin: String,
     identity: User,
-    channels: HashSet<String>,
+    channels: HashMap<String, ServerChannel>,
     watch_list: HashSet<String>,
     messaging: NotificationService<Sms>,
     debug: bool,
-    admin: String,
-    topic: String,
 }
 
 impl Watcher {
     pub fn from_config(config: &Config) -> Watcher {
         Watcher {
+            admin: config.bot.admin.to_owned(),
             identity: config.user.clone(),
-            channels: config.server.channels.iter().cloned().collect(),
-            watch_list: config.watch_list.iter().cloned().collect(),
+            channels: config.server.channels.iter().cloned().map(|channel| (channel.name.to_owned(), channel)).collect(),
+            watch_list: config.bot.watch_list.iter().cloned().collect(),
             messaging: create_notification_service(config),
             debug: false,
-            admin: config.admin.to_owned(),
-            topic: config.topic.to_owned(),
         }
     }
 
@@ -52,12 +51,11 @@ impl Watcher {
                     }
                 }
 
-                // Watched user has joined channel
-                // Actually, for right now, we want notifications about everyone, because we only
-                // have Watcher running in channels where we want admin information...
-                //Code::Join if self.watch_list.contains(&user.nickname) => {
+                // Any user has joined an admin channel OR a watched user has joined any channel
                 Code::Join => {
-                    self.messaging.notify_channel(&user.nickname, &channel);
+                    if self.channels.contains_key(channel) || self.watch_list.contains(&user.nickname) {
+                        self.messaging.notify_channel(&user.nickname, &channel);
+                    }
                 },
 
                 // Bot has received private message; for right now, we're just going to respond
@@ -69,12 +67,17 @@ impl Watcher {
                         return;
                     }
 
-                    irc.privmsg(&user.nickname, "AFK").ok();
+                    let content = message.args.get(1).map(|s| s.as_ref()).unwrap_or("");
+                    if content.starts_with(".") {
+                        self.handle_command(irc, &user.nickname, &user.nickname, content);
+                    } else {
+                        irc.privmsg(&user.nickname, "AFK").ok();
+                    }
 
                     // Going to try letting the user know that the bot has received a PM, just...
                     self.messaging.notify_pm(
                         &user.nickname,
-                        message.args.get(0).map(|s| s.as_ref()).unwrap_or("")
+                        content,
                     );
                 },
 
@@ -87,14 +90,14 @@ impl Watcher {
         }
     }
 
-    fn handle_command(&mut self, irc: &Irc, channel: &Channel, nick: &str, command: &str) {
+    fn handle_command(&mut self, irc: &Irc, channel: &str, nick: &str, command: &str) {
         if let Some(command) = command.parse::<Command>().ok() {
             match command {
                 Command::Chuck => {
                     println!("{} has requested some CHUCK ACTION!", nick);
                     match get_awesome() {
-                        None => irc.privmsg(&channel.name, "Sorry, I can't think of one."),
-                        Some(res) => irc.privmsg(&channel.name, &res.joke),
+                        None => irc.privmsg(channel, "Sorry, I can't think of one."),
+                        Some(res) => irc.privmsg(channel, &res.joke),
                     }
                     .ok();
                 }
@@ -114,12 +117,15 @@ impl Watcher {
 
                 // Channel commands
                 Command::JoinChannel(ref channel) => {
-                    if self.is_admin(nick) && !self.channels.contains(channel) && irc.join(channel, None).is_ok() {
-                        self.channels.insert(channel.to_owned());
+                    if self.is_admin(nick) && !self.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
+                        self.channels.insert(
+                            channel.to_owned(),
+                            ServerChannel { name: channel.to_owned(), topic: None, admin: false, log_chat: true },
+                        );
                     }
                 },
                 Command::LeaveChannel(ref channel) => {
-                    if self.is_admin(nick) && self.channels.contains(channel) && irc.part(channel, None).is_ok() {
+                    if self.is_admin(nick) && self.channels.contains_key(channel) && irc.part(channel, None).is_ok() {
                         self.channels.remove(channel);
                     }
                 },
@@ -127,9 +133,9 @@ impl Watcher {
                 // Admin options
                 Command::SetTopic(ref topic) => {
                     if self.is_admin(nick) {
-                        match irc.set_topic(&channel.name, topic) {
+                        match irc.set_topic(channel, topic) {
                             Err(e) => println!("{:?}", e),
-                            Ok(_) => println!("{}: {}", channel.name, topic),
+                            Ok(_) => println!("{}: {}", channel, topic),
                         }
                     }
                 }
@@ -164,7 +170,7 @@ impl Listener for Watcher {
 
         // Handle public chat commands
         if msg.starts_with(".") {
-            self.handle_command(irc, channel, &user.nickname, msg);
+            self.handle_command(irc, &channel.name, &user.nickname, msg);
         }
     }
 
@@ -178,11 +184,14 @@ impl Listener for Watcher {
 
     fn welcome(&mut self, irc: &Irc) {
         // join all our channels
-        for channel in &self.channels {
-            irc.join(channel, None).ok();
-            match irc.set_topic(channel, &self.topic) {
-                Err(e) => println!("{:?}", e),
-                Ok(_) => println!("{}: {}", channel, self.topic),
+        for channel in self.channels.values() {
+            irc.join(&channel.name, None).ok();
+            match channel.topic {
+                Some(ref topic) if channel.admin => match irc.set_topic(&channel.name, &topic) {
+                    Err(e) => println!("{:?}", e),
+                    Ok(_) => println!("{}: {}", channel.name, topic),
+                },
+                _ => ()
             }
         }
     }
@@ -197,6 +206,6 @@ fn create_notification_service(config: &Config) -> NotificationService<Sms> {
             config.twilio.number.as_ref(),
         ),
         config.twilio.recipient.as_ref(),
-        config.message_frequency,
+        Duration::minutes(config.bot.message_frequency),
     )
 }

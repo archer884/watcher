@@ -7,5 +7,6 @@ authors = ["J/A <archer884@gmail.com>"]
 hiirc = "*"
 icndb = { git = "https://github.com/archer884/icndb.git" }
 rsilio = { git = "https://github.com/archer884/rsilio.git" }
+rustc-serialize = "*"
 time = "*"
 toml = "*"
