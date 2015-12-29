@@ -10,7 +10,7 @@ mod commands;
 mod listener;
 
 pub struct Watcher {
-    admin: String,
+    admin: HashSet<String>,
     identity: User,
     channels: HashMap<String, ServerChannel>,
     watch_list: HashSet<String>,
@@ -21,7 +21,7 @@ pub struct Watcher {
 impl Watcher {
     pub fn from_config(config: &Config) -> Watcher {
         Watcher {
-            admin: config.bot.admin.to_owned(),
+            admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
             channels: config.server.channels.iter().cloned().map(|channel| (channel.name.to_owned(), channel)).collect(),
             watch_list: config.bot.watch_list.iter().cloned().collect(),
@@ -118,7 +118,7 @@ impl Watcher {
     }
 
     fn is_admin(&self, nick: &str) -> bool {
-        self.admin == nick
+        self.admin.contains(nick)
     }
 
     fn admin_channel(&self, channel: &str) -> bool {

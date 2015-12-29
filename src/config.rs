@@ -6,7 +6,7 @@ use toml::{decode, Value};
 
 #[derive(RustcDecodable)]
 pub struct Bot {
-    pub admin: String,
+    pub admin: Vec<String>,
     pub message_frequency: i64,
     pub watch_list: Vec<String>,
 }
@@ -66,7 +66,7 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
             };
 
             let table: Value = try!(data.parse().map_err(|e| ConfigError::Unreadable(
-                format!("{:?}", e)    
+                format!("{:?}", e)
             )));
 
             Ok(Config {
