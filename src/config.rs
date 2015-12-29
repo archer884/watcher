@@ -40,11 +40,17 @@ pub struct User {
     pub real: String,
 }
 
+#[derive(RustcDecodable)]
+pub struct Logging {
+    path: String,
+}
+
 pub struct Config {
     pub bot: Bot,
     pub server: Server,
     pub user: User,
     pub twilio: Twilio,
+    pub logging: Logging,
 }
 
 #[derive(Debug)]
@@ -74,6 +80,7 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 server: try!(decode_section("server", &table)),
                 user: try!(decode_section("user", &table)),
                 twilio: try!(decode_section("twilio", &table)),
+                logging: try!(decode_section("logging", &table)),
             })
         }
     }
