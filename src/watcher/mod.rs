@@ -98,6 +98,7 @@ impl Watcher {
         if let Some(command) = command.parse::<Command>().ok() {
             match command {
                 Command::Chuck => commands::chuck(irc, channel, nick),
+                Command::Cookie => commands::cookie(irc, channel, nick),
 
                 // Bot settings
                 Command::SetNick(ref new_nick) if self.is_admin(nick) => commands::set_nick(self, irc, new_nick),

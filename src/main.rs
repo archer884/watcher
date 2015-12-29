@@ -1,5 +1,6 @@
 #![feature(slice_patterns)]
 
+extern crate fortune_cookie;
 extern crate hiirc;
 extern crate icndb;
 extern crate rsilio;

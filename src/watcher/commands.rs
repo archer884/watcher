@@ -1,6 +1,7 @@
 use super::Watcher;
 
 use config::ServerChannel;
+use fortune_cookie;
 use icndb::next as get_awesome;
 use hiirc::Irc;
 
@@ -9,6 +10,15 @@ pub fn chuck(irc: &Irc, channel: &str, nick: &str) {
     match get_awesome() {
         None => irc.privmsg(channel, "Sorry, I can't think of one."),
         Some(res) => irc.privmsg(channel, &res.joke),
+    }
+    .ok();
+}
+
+pub fn cookie(irc: &Irc, channel: &str, nick: &str) {
+    println!("{} has requested a FORTUNE COOKIE", nick);
+    match fortune_cookie::cookie().ok() {
+        None => irc.privmsg(channel, "Man who run in front of car get tired. Man who run behind car get exhausted. You have only yourself to blame for this."),
+        Some(res) => irc.privmsg(channel, &res),
     }
     .ok();
 }

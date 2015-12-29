@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 pub enum Command {
     Chuck,
+    Cookie,
 
     // bot options
     SetNick(String),
@@ -24,6 +25,7 @@ impl FromStr for Command {
         let data: Vec<_> = s.split_whitespace().map(AsRef::as_ref).collect();
         match &data[..] {
             [".chuck"] => Ok(Command::Chuck),
+            [".cookie"] => Ok(Command::Cookie),
 
             // bot options
             [".debug", enabled] => Ok(Command::SetDebug(enabled.parse().unwrap_or(false))),
