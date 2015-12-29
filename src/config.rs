@@ -1,3 +1,4 @@
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 
@@ -59,6 +60,7 @@ pub enum ConfigError {
     Unreadable(String), // couldn't read toml data
     BadElement(String),
     MissingElement(String),
+    InvalidLoggingConfig(String), // could not create/access path
 }
 
 pub fn read_config(path: &str) -> Result<Config, ConfigError> {
@@ -75,14 +77,26 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 format!("{:?}", e)
             )));
 
+            let logging = try!(decode_section("logging", &table));
+            if let Err(message) = validate_logging(&logging) {
+                return Err(ConfigError::InvalidLoggingConfig(message));
+            }
+
             Ok(Config {
                 bot: try!(decode_section("bot", &table)),
                 server: try!(decode_section("server", &table)),
                 user: try!(decode_section("user", &table)),
                 twilio: try!(decode_section("twilio", &table)),
-                logging: try!(decode_section("logging", &table)),
+                logging: logging,
             })
         }
+    }
+}
+
+fn validate_logging(logging: &Logging) -> Result<(), String> {
+    match fs::create_dir_all(&logging.path) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("{:?}", e)),
     }
 }
 

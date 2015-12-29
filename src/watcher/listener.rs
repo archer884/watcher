@@ -11,9 +11,8 @@ impl Listener for Watcher {
 
     fn channel_msg(&mut self, irc: &Irc, channel: &Channel, user: &ChannelUser, msg: &str) {
         // Log chat
-        // if self.watch_list.contains(&user.nickname) || msg.contains("UnendingWatcher") {
-            println!("{}: {}", user.nickname, msg);
-        // }
+        self.log(&channel.name, &user.nickname, msg);
+        println!("{}: {}", user.nickname, msg);
 
         // Handle public chat commands
         if msg.starts_with(".") {

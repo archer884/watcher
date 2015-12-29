@@ -118,6 +118,7 @@ impl Watcher {
         }
     }
 
+    #[inline]
     fn is_admin(&self, nick: &str) -> bool {
         self.admin.contains(nick)
     }
@@ -129,8 +130,22 @@ impl Watcher {
         }
     }
 
+    #[inline]
     fn watching(&self, nick: &str) -> bool {
         self.watch_list.contains(nick)
+    }
+
+    #[inline]
+    fn logging(&self, channel: &str) -> bool {
+        self.channels.get(channel).map(|channel| channel.log_chat).unwrap_or(false)
+    }
+
+    fn log(&self, channel: &str, nick: &str, message: &str) {
+        if !self.logging(channel) {
+            return;
+        }
+
+        unimplemented!()
     }
 }
 
