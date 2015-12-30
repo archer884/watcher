@@ -160,6 +160,7 @@ impl Watcher {
         OpenOptions::new().write(true).create(true).append(true).open(&path)
     }
 
+    #[allow(unused)] // once again, we are swallowing the result of this write
     fn log(&self, channel: &str, nick: &str, message: &str) {
         if !self.logging(channel) {
             return;
