@@ -154,7 +154,7 @@ impl Watcher {
         let path = format!(
             "{}/{}",
             self.log_path,
-            time::strftime("%F", &time::now()).unwrap() + "_" + channel,
+            time::strftime("%F", &time::now()).unwrap() + "_" + channel.trim_left_matches('#') + ".log",
         );
 
         OpenOptions::new().write(true).create(true).append(true).open(&path)
@@ -166,9 +166,12 @@ impl Watcher {
             return;
         }
 
-        if let Ok(mut file) = self.open_log(channel) {
-            writeln!(file, "{}: {}", nick, message);
-        }
+        match self.open_log(channel) {
+            Err(e) => println!("{:?}", e),
+            Ok(mut file) => {
+                writeln!(file, "{}: {}", nick, message);                
+            }
+        };
     }
 }
 
