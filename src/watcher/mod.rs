@@ -1,9 +1,13 @@
+use std::fs::{File, OpenOptions};
+use std::io::Error as IoError;
+use std::io::Write;
 use std::collections::{HashMap, HashSet};
 
 use command::Command;
 use config::{Config, ServerChannel, User};
 use hiirc::{Code, Message, Prefix, Irc};
 use notifications::{NotificationService, Sms};
+use time;
 use time::Duration;
 
 mod commands;
@@ -15,6 +19,7 @@ pub struct Watcher {
     channels: HashMap<String, ServerChannel>,
     watch_list: HashSet<String>,
     messaging: NotificationService<Sms>,
+    log_path: String,
     debug: bool,
 }
 
@@ -26,6 +31,7 @@ impl Watcher {
             channels: config.server.channels.iter().cloned().map(|channel| (channel.name.to_owned(), channel)).collect(),
             watch_list: config.bot.watch_list.iter().cloned().collect(),
             messaging: create_notification_service(config),
+            log_path: config.logging.path.clone(),
             debug: false,
         }
     }
@@ -118,6 +124,7 @@ impl Watcher {
         }
     }
 
+    #[inline]
     fn is_admin(&self, nick: &str) -> bool {
         self.admin.contains(nick)
     }
@@ -129,8 +136,38 @@ impl Watcher {
         }
     }
 
+    #[inline]
     fn watching(&self, nick: &str) -> bool {
         self.watch_list.contains(nick)
+    }
+
+    #[inline]
+    fn logging(&self, channel: &str) -> bool {
+        self.channels.get(channel).map(
+            |channel| channel.log_chat
+        ).unwrap_or(false)
+    }
+
+    fn open_log(&self, channel: &str) -> Result<File, IoError> {
+        // I was going to write a test for this unwrap call, but, honestly, I figure everyone
+        // and their dog knows that this particular format specifier is fine...
+        let path = format!(
+            "{}/{}",
+            self.log_path,
+            time::strftime("%F", &time::now()).unwrap() + "_" + channel,
+        );
+
+        OpenOptions::new().write(true).create(true).append(true).open(&path)
+    }
+
+    fn log(&self, channel: &str, nick: &str, message: &str) {
+        if !self.logging(channel) {
+            return;
+        }
+
+        if let Ok(mut file) = self.open_log(channel) {
+            writeln!(file, "{}: {}", nick, message);
+        }
     }
 }
 

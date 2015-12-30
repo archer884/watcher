@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use time;
 use time::{Duration, Timespec};
-use time::get_time as current_time;
 
 pub use rsilio::MessagingService as Sms;
 
@@ -58,11 +58,11 @@ impl<T: NotificationSink> NotificationService<T> {
         let entry = self.sent.entry(nick.to_owned()).or_insert(None);
         let frequency = self.frequency;
 
-        entry.clone().map(|tm| (current_time() - tm) > frequency).unwrap_or(true)
+        entry.clone().map(|tm| (time::get_time() - tm) > frequency).unwrap_or(true)
     }
 
     fn update_sent(&mut self, nick: &str) {
-        self.sent.insert(nick.to_owned(), Some(current_time()));
+        self.sent.insert(nick.to_owned(), Some(time::get_time()));
     }
 }
 
