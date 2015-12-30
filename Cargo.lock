@@ -104,7 +104,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "fortune-cookie"
 version = "0.1.0"
-source = "git+https://github.com/archer884/fortune-cookie.git#a980468edf890b3729ff1015f7c2de47d6aba139"
+source = "git+https://github.com/archer884/fortune-cookie.git#090e17f66b0f16bd3d8505f50b79570115e03540"
 dependencies = [
  "hyper 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.44 (registry+https://github.com/rust-lang/crates.io-index)",
