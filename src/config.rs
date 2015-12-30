@@ -43,7 +43,7 @@ pub struct User {
 
 #[derive(RustcDecodable)]
 pub struct Logging {
-    path: String,
+    pub path: String,
 }
 
 pub struct Config {
