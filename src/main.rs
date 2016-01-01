@@ -3,6 +3,7 @@
 extern crate fortune_cookie;
 extern crate hiirc;
 extern crate icndb;
+extern crate regex;
 extern crate rsilio;
 extern crate rustc_serialize;
 extern crate time;
@@ -13,6 +14,7 @@ use time::Duration;
 
 mod command;
 mod config;
+mod greetings;
 mod notifications;
 mod watcher;
 

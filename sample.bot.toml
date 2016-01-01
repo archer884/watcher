@@ -1,0 +1,35 @@
+[server]
+address = "localhost:1145"
+
+[[server.channels]]
+name = "#channel-name"
+admin = true
+log_chat = true
+topic = "topic here"
+greetings = [
+    { passthru = true, filter = "John.*", message = "Hi, John!" },
+    { passthru = false, filter = ".*", message = "Welcome to the channel!" },
+]
+
+[user]
+nick = "watcher"
+user = "watcher52"
+real = "Watch out for loose seal!"
+
+[bot]
+admin = ["admin", "nicks", "here"]
+message_frequency = 180
+watch_list = [
+    "watched",
+    "nicks",
+    "here",
+]
+
+[twilio]
+sid = "ACadfefde88d0b6649c9200123684fb15f"
+token = "d07c27c0d8311b89a04309ed5a8038a9"
+number = "8065133678"
+recipient = "8063416455"
+
+[logging]
+path = "/log/dir/here"

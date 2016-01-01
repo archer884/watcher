@@ -51,25 +51,34 @@ impl Watcher {
         // the user associated with it and there's nothing to do
         match message.prefix {
             Some(Prefix::User(ref user)) => match message.code {
+                // Make bot stop greeting itself -.-
+                Code::Join if self.identity.nick == user.nickname => (),
+
                 // Bot admin has joined channel
                 Code::Join if self.is_admin(&user.nickname) => {
                     match irc.raw(format!("MODE {} +o {}", channel, user.nickname)) {
                         Err(e) => println!("{:?}", e),
                         Ok(_) => println!("+o {}", user.nickname),
                     }
+                    self.greet_user(irc, &channel, &user.nickname);
                 }
 
-                // Any user has joined an admin channel OR a watched user has joined any channel
                 Code::Join => {
+                    // A user has joined an admin channel OR a watched user has joined any channel
                     if self.admin_channel(&channel) || self.watching(&user.nickname) {
                         self.messaging.notify_channel(&user.nickname, &channel);
+                    }
+
+                    // A user has joined an admin channel
+                    if self.admin_channel(&channel) {
+                        self.greet_user(irc, &channel, &user.nickname);
                     }
                 },
 
                 // Bot has received private message; for right now, we're just going to respond
                 // that we're AFK and call it good. Later on, we could handle these messages the
                 // way we handle channel messages. It is unbelievably complicated to detect a pm.
-                Code::Privmsg if message.args.get(0).map(|s| s.as_ref()) == Some("UnendingWatcher") => {
+                Code::Privmsg if message.args.get(0) == Some(&self.identity.nick) => {
                     // Hack to ignore StatServ
                     if user.nickname == "StatServ" {
                         return;
@@ -98,8 +107,6 @@ impl Watcher {
         }
     }
 
-    // TODO: change this so that we're not *just* parsing the command, but also validating the
-    // user's permissions before we actually get to dispatching the command.
     fn handle_command(&mut self, irc: &Irc, channel: &str, nick: &str, command: &str) {
         if let Some(command) = command.parse::<Command>().ok() {
             match command {
@@ -120,6 +127,25 @@ impl Watcher {
                 Command::Kill => (), // irc.close().ok() // this was used to kill the IRC connection, but that results in Bad Things(TM)
 
                 _ => (), // probably an unauthorized command
+            }
+        }
+    }
+
+    fn greet_user(&mut self, irc: &Irc, channel: &str, nick: &str) {
+        let mut take = true;
+        let greetings = self.channels.get(channel).map(|channel|
+            channel.greetings.iter()
+                .filter(move |greeting| greeting.is_valid(nick))
+                .take_while(move |greeting| {
+                    let ret = take;
+                    take = greeting.passthru();
+                    ret
+                })
+        );
+
+        if let Some(greetings) = greetings {
+            for greeting in greetings {
+                irc.privmsg(channel, &greeting.message(nick)).ok();
             }
         }
     }
@@ -169,7 +195,7 @@ impl Watcher {
         match self.open_log(channel) {
             Err(e) => println!("{:?}", e),
             Ok(mut file) => {
-                writeln!(file, "{}: {}", nick, message);                
+                writeln!(file, "{}: {}", nick, message);
             }
         };
     }

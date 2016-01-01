@@ -7,6 +7,7 @@ authors = ["J/A <archer884@gmail.com>"]
 fortune-cookie = { git = "https://github.com/archer884/fortune-cookie.git" }
 hiirc = "*"
 icndb = { git = "https://github.com/archer884/icndb.git" }
+regex = "*"
 rsilio = { git = "https://github.com/archer884/rsilio.git" }
 rustc-serialize = "*"
 time = "*"

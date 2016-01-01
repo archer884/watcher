@@ -38,7 +38,13 @@ pub fn join_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
     if !watcher.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
         watcher.channels.insert(
             channel.to_owned(),
-            ServerChannel { name: channel.to_owned(), topic: None, admin: false, log_chat: true },
+            ServerChannel {
+                name: channel.to_owned(),
+                topic: None,
+                admin: false,
+                log_chat: true,
+                greetings: vec![],
+            },
         );
     }
 }

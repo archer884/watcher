@@ -2,6 +2,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Read;
 
+use greetings::Greeting;
 use rustc_serialize::Decodable;
 use toml::{decode, Value};
 
@@ -24,6 +25,7 @@ pub struct ServerChannel {
     pub admin: bool,
     pub log_chat: bool,
     pub topic: Option<String>,
+    pub greetings: Vec<Greeting>,
 }
 
 #[derive(RustcDecodable)]

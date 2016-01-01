@@ -5,6 +5,7 @@ dependencies = [
  "fortune-cookie 0.1.0 (git+https://github.com/archer884/fortune-cookie.git)",
  "hiirc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "icndb 0.1.0 (git+https://github.com/archer884/icndb.git)",
+ "regex 0.1.44 (registry+https://github.com/rust-lang/crates.io-index)",
  "rsilio 0.1.0 (git+https://github.com/archer884/rsilio.git)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
