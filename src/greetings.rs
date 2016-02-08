@@ -84,17 +84,16 @@ impl Greeting {
 //     }
 // }
 
-#[derive(RustcDecodable)]
-struct GreetingCore {
-    passthru: bool,
-    filter: Option<String>,
-    message: String,
-}
-
 impl Decodable for Greeting {
     fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
-        let core = try!(GreetingCore::decode(d));
+        #[derive(RustcDecodable)]
+        struct Core {
+            passthru: bool,
+            filter: Option<String>,
+            message: String,
+        }
 
+        let core = try!(Core::decode(d));
         Ok(Greeting {
             passthru: core.passthru,
             filter: core.filter.and_then(|f| Regex::new(&f).ok()),
