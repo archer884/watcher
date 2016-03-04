@@ -1,29 +1,34 @@
-use super::Watcher;
-
+use std::thread;
+use super::{ChnHndl, IrcHndl, UsrHndl, Watcher};
 use config::ServerChannel;
 use fortune_cookie;
+use hiirc::IrcWrite;
 use icndb::next as get_awesome;
-use hiirc::Irc;
 
-pub fn chuck(irc: &Irc, channel: &str, nick: &str) {
-    println!("{} has requested some CHUCK ACTION!", nick);
-    match get_awesome() {
-        None => irc.privmsg(channel, "Sorry, I can't think of one."),
-        Some(res) => irc.privmsg(channel, &res.joke),
-    }
-    .ok();
+static DEFAULT_CHUCK: &'static str = "Sorry, I can't think of one.";
+static DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind car get exhausted. You have only yourself to blame for this.";
+
+pub fn chuck(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
+    println!("{} has requested some CHUCK ACTION!", user.nickname());
+    thread::spawn(move || {
+        match get_awesome() {
+            None => irc.privmsg(&user.nickname(), DEFAULT_CHUCK),
+            Some(res) => irc.privmsg(&user.nickname(), &res.joke),
+        }.ok();
+    });
 }
 
-pub fn cookie(irc: &Irc, channel: &str, nick: &str) {
-    println!("{} has requested a FORTUNE COOKIE", nick);
-    match fortune_cookie::cookie().ok() {
-        None => irc.privmsg(channel, "Man who run in front of car get tired. Man who run behind car get exhausted. You have only yourself to blame for this."),
-        Some(res) => irc.privmsg(channel, &res),
-    }
-    .ok();
+pub fn cookie(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
+    println!("{} has requested a FORTUNE COOKIE", user.nickname());
+    thread::spawn(move || {
+        match fortune_cookie::cookie().ok() {
+            None => irc.privmsg(&user.nickname(), DEFAULT_COOKIE),
+            Some(res) => irc.privmsg(&user.nickname(), &res),
+        }.ok();
+    });
 }
 
-pub fn set_nick(watcher: &mut Watcher, irc: &Irc, nick: &str) {
+pub fn set_nick(watcher: &mut Watcher, irc: IrcHndl, nick: &str) {
     if irc.nick(nick).is_ok() {
         watcher.identity.nick = nick.to_owned();
     }
@@ -34,7 +39,7 @@ pub fn set_debug(watcher: &mut Watcher, enabled: bool) {
     println!("debug mode {}", if enabled { "enabled" } else { "disabled" });
 }
 
-pub fn join_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
+pub fn join_channel(watcher: &mut Watcher, irc: IrcHndl, channel: &str) {
     if !watcher.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
         watcher.channels.insert(
             channel.to_owned(),
@@ -49,7 +54,7 @@ pub fn join_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
     }
 }
 
-pub fn leave_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
+pub fn leave_channel(watcher: &mut Watcher, irc: IrcHndl, channel: &str) {
     if watcher.channels.contains_key(channel) && irc.part(channel, None).is_ok() {
         watcher.channels.remove(channel);
     }
@@ -60,9 +65,9 @@ pub fn leave_channel(watcher: &mut Watcher, irc: &Irc, channel: &str) {
 // our list of channels, so, for the future, I'm leaving the Watcher object as part of this
 // function signature.
 #[allow(unused)]
-pub fn set_topic(watcher: &mut Watcher, irc: &Irc, channel: &str, topic: &str) {
-    match irc.set_topic(channel, topic) {
+pub fn set_topic(watcher: &mut Watcher, irc: IrcHndl, channel: ChnHndl, topic: &str) {
+    match irc.set_topic(channel.name(), topic) {
         Err(e) => println!("{:?}", e),
-        Ok(_) => println!("{}: {}", channel, topic),
+        Ok(_) => println!("{}: {}", channel.name(), topic),
     }
 }
