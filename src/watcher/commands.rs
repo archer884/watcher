@@ -1,5 +1,5 @@
 use std::thread;
-use super::{ChnHndl, IrcHndl, UsrHndl, Watcher};
+use watcher::{ChnHndl, IrcHndl, UsrHndl, Watcher};
 use config::ServerChannel;
 use fortune_cookie;
 use hiirc::IrcWrite;
