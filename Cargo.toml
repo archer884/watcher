@@ -4,11 +4,16 @@ version = "0.1.0"
 authors = ["J/A <archer884@gmail.com>"]
 
 [dependencies]
-fortune-cookie = { git = "https://github.com/archer884/fortune-cookie.git" }
+clippy = {version = "*", optional = true}
+fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git", default-features = false}
 hiirc = "*"
-icndb = { git = "https://github.com/archer884/icndb.git" }
+icndb = {git = "https://github.com/archer884/icndb.git", default-features = false}
 regex = "*"
-rsilio = { git = "https://github.com/archer884/rsilio.git" }
+rsilio = {git = "https://github.com/archer884/rsilio.git", default-features = false}
 rustc-serialize = "*"
 time = "*"
 toml = "*"
+
+[features]
+default = []
+ssl = ["fortune-cookie/ssl", "icndb/ssl", "rsilio/ssl"]

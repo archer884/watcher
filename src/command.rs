@@ -23,7 +23,7 @@ impl FromStr for Command {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let data: Vec<_> = s.split_whitespace().map(AsRef::as_ref).collect();
-        match &data[..] {
+        match data[..] {
             [".chuck"] => Ok(Command::Chuck),
             [".cookie"] => Ok(Command::Cookie),
 

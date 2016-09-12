@@ -1,9 +1,8 @@
-use std::fs;
-use std::fs::File;
-use std::io::Read;
-
 use greetings::Greeting;
 use rustc_serialize::Decodable;
+use std::fs::File;
+use std::fs;
+use std::io::Read;
 use toml::{decode, Value};
 
 #[derive(RustcDecodable)]
@@ -105,7 +104,7 @@ fn validate_logging(logging: &Logging) -> Result<(), String> {
 fn decode_section<T: Decodable>(name: &str, table: &Value) -> Result<T, ConfigError> {
     match table.lookup(name) {
         None => Err(ConfigError::MissingElement(name.to_owned())),
-        Some(value) => decode(value.clone()).ok_or(ConfigError::BadElement(
+        Some(value) => decode(value.clone()).ok_or_else(|| ConfigError::BadElement(
             format!("unable to decode {:?} :: {:?}", name, table)
         ))
     }
