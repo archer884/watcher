@@ -5,7 +5,7 @@ dependencies = [
  "clippy 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
  "dice 2.0.0 (git+https://github.com/archer884/dice.git)",
  "fortune-cookie 0.1.0 (git+https://github.com/archer884/fortune-cookie.git)",
- "hiirc 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hiirc 0.4.0 (git+https://github.com/sbstp/hiirc.git)",
  "icndb 0.1.0 (git+https://github.com/archer884/icndb.git)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.76 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -154,10 +154,10 @@ dependencies = [
 [[package]]
 name = "hiirc"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/sbstp/hiirc.git#15dce511c03fd3b7d9789d0ce793cf3bb9987d9e"
 dependencies = [
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "loirc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "loirc 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -253,11 +253,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "loirc"
-version = "0.1.4"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -555,7 +554,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum fortune-cookie 0.1.0 (git+https://github.com/archer884/fortune-cookie.git)" = "<none>"
 "checksum gcc 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)" = "91ecd03771effb0c968fd6950b37e89476a578aaf1c70297d8e92b6516ec3312"
 "checksum gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0912515a8ff24ba900422ecda800b52f4016a56251922d397c576bf92c690518"
-"checksum hiirc 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6957d104cb5a307ad62a597cd0c51579d40812c5669f60b18f11fabbec81cae9"
+"checksum hiirc 0.4.0 (git+https://github.com/sbstp/hiirc.git)" = "<none>"
 "checksum hpack 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2da7d3a34cf6406d9d700111b8eafafe9a251de41ae71d8052748259343b58"
 "checksum httparse 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "46534074dbb80b070d60a5cb8ecadd8963a00a438ae1a95268850a7ef73b67ae"
 "checksum hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)" = "eb27e8a3e8f17ac43ffa41bbda9cf5ad3f9f13ef66fa4873409d4902310275f7"
@@ -567,7 +566,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)" = "408014cace30ee0f767b1c4517980646a573ec61a57957aeeabcac8ac0a02e8d"
 "checksum libressl-pnacl-sys 2.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "cbc058951ab6a3ef35ca16462d7642c4867e6403520811f28537a4e2f2db3e71"
 "checksum log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ab83497bf8bf4ed2a74259c1c802351fcd67a65baa86394b6ba73c36f4838054"
-"checksum loirc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "329a06b2ed5bd78df8975b2075f0e2849c37ab0896c8b33aeb2baf455069ec50"
+"checksum loirc 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "20456986a5a085e240a37488d79b326806f84979d60157dbeebcbe3ca63219cb"
 "checksum matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "15305656809ce5a4805b1ff2946892810992197ce1270ff79baded852187942e"
 "checksum memchr 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d8b629fb514376c675b98c1421e80b151d3817ac42d7c667717d282761418d20"
 "checksum mime 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b5c93a4bd787ddc6e7833c519b73a50883deb5863d76d9b71eb8216fb7f94e66"

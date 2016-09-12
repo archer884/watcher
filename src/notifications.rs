@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use time::{self, Duration, Timespec};
+use std::time::{Duration, Instant};
 
 pub use rsilio::MessagingService as Sms;
 
@@ -17,7 +17,7 @@ pub trait NotificationSink {
 // represent, respectively, SMS or email sinks.
 pub struct NotificationService<T: NotificationSink> {
     sink: T,
-    sent: HashMap<String, Option<Timespec>>,
+    sent: HashMap<String, Option<Instant>>,
     recipient: String,
     frequency: Duration,
 }
@@ -56,11 +56,11 @@ impl<T: NotificationSink> NotificationService<T> {
         let entry = self.sent.entry(nick.to_owned()).or_insert(None);
         let frequency = self.frequency;
 
-        entry.map_or(true, |tm| (time::get_time() - tm) > frequency)
+        entry.map_or(true, |tm| (Instant::now() - tm) > frequency)
     }
 
     fn update_sent(&mut self, nick: &str) {
-        self.sent.insert(nick.to_owned(), Some(time::get_time()));
+        self.sent.insert(nick.to_owned(), Some(Instant::now()));
     }
 }
 

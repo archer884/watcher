@@ -7,7 +7,6 @@ authors = ["J/A <archer884@gmail.com>"]
 clippy = {version = "*", optional = true}
 dice = {git = "https://github.com/archer884/dice.git"}
 fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git", default-features = false}
-hiirc = "*"
 icndb = {git = "https://github.com/archer884/icndb.git", default-features = false}
 rand = "*"
 regex = "*"
@@ -15,6 +14,9 @@ rsilio = {git = "https://github.com/archer884/rsilio.git", default-features = fa
 rustc-serialize = "*"
 time = "*"
 toml = "*"
+
+[dependencies.hiirc]
+git = "https://github.com/sbstp/hiirc.git"
 
 [features]
 default = []

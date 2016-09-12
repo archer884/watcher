@@ -20,7 +20,7 @@ pub fn chuck(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
 }
 
 pub fn cookie(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
-    println!("{} has requested a FORTUNE COOKIE", user.nickname());
+    println!("{} has requested a FORTUNE COOKIE", *user.nickname());
     thread::spawn(move || {
         match fortune_cookie::cookie().ok() {
             None => irc.privmsg(&user.nickname(), DEFAULT_COOKIE),
@@ -32,13 +32,13 @@ pub fn cookie(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
 pub fn roll(irc: IrcHndl, channel: ChnHndl, user: UsrHndl, dice: Vec<Dice>) {
     use rand;
 
-    println!("{} has requested DICE ROLLS: {:?}", user.nickname(), dice);
+    println!("{} has requested DICE ROLLS: {:?}", *user.nickname(), dice);
     thread::spawn(move || {
         let mut rng = rand::thread_rng();
         let results: Vec<u32> = dice.iter().flat_map(|roll| roll.gen_result(&mut rng)).collect();
         let formatted_results = format_dice_results(&results);
 
-        irc.privmsg(channel.name(), &format!("{} rolled {} ({})", user.nickname(), formatted_results, results.iter().sum::<u32>())).ok();
+        irc.privmsg(channel.name(), &format!("{} rolled {} ({})", *user.nickname(), formatted_results, results.iter().sum::<u32>())).ok();
     });
 }
 
