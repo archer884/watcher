@@ -128,6 +128,7 @@ impl Watcher {
             match command {
                 Command::Chuck => commands::chuck(irc, channel, user),
                 Command::Cookie => commands::cookie(irc, channel, user),
+                Command::Roll(dice) => commands::roll(irc, channel, user, dice),
 
                 // Bot settings
                 Command::SetNick(ref new_nick) if self.is_admin(&user.nickname()) => commands::set_nick(self, irc, new_nick),

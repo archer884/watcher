@@ -1,4 +1,5 @@
 use config::ServerChannel;
+use dice::Dice;
 use fortune_cookie;
 use hiirc::IrcWrite;
 use icndb::next as get_awesome;
@@ -25,6 +26,19 @@ pub fn cookie(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
             None => irc.privmsg(&user.nickname(), DEFAULT_COOKIE),
             Some(res) => irc.privmsg(&user.nickname(), &res),
         }.ok();
+    });
+}
+
+pub fn roll(irc: IrcHndl, channel: ChnHndl, user: UsrHndl, dice: Vec<Dice>) {
+    use rand;
+
+    println!("{} has requested DICE ROLLS: {:?}", user.nickname(), dice);
+    thread::spawn(move || {
+        let mut rng = rand::thread_rng();
+        let results: Vec<u32> = dice.iter().flat_map(|roll| roll.gen_result(&mut rng)).collect();
+        let formatted_results = format_dice_results(&results);
+
+        irc.privmsg(channel.name(), &format!("{} rolled {} ({})", user.nickname(), formatted_results, results.iter().sum::<u32>())).ok();
     });
 }
 
@@ -70,4 +84,23 @@ pub fn set_topic(watcher: &mut Watcher, irc: IrcHndl, channel: ChnHndl, topic: &
         Err(e) => println!("{:?}", e),
         Ok(_) => println!("{}: {}", channel.name(), topic),
     }
+}
+
+fn format_dice_results(values: &[u32]) -> String {
+    use std::fmt::Write;
+    
+    if values.len() == 1 {
+        return values.first().unwrap().to_string()
+    }
+
+    let mut buf = String::new();
+    for (idx, &n) in values.iter().enumerate() {
+        let count = values.len();
+        if idx + 1 == count {
+            write!(buf, "and {}", n).ok();
+        } else {
+            write!(buf, "{}, ", n).ok();
+        }
+    }
+    buf
 }
