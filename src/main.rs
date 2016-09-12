@@ -1,6 +1,7 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(slice_patterns)]
+#![feature(custom_derive, plugin, question_mark, slice_patterns)]
+#![plugin(serde_macros)]
 
 extern crate dice;
 extern crate fortune_cookie;
@@ -9,7 +10,7 @@ extern crate icndb;
 extern crate rand;
 extern crate regex;
 extern crate rsilio;
-extern crate rustc_serialize;
+extern crate serde;
 extern crate time;
 extern crate toml;
 

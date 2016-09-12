@@ -1,24 +1,24 @@
 use greetings::Greeting;
-use rustc_serialize::Decodable;
+use serde::Deserialize;
 use std::fs::File;
 use std::fs;
 use std::io::Read;
 use toml::{decode, Value};
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Bot {
     pub admin: Vec<String>,
     pub message_frequency: u64,
     pub watch_list: Vec<String>,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Server {
     pub address: String,
     pub channels: Vec<ServerChannel>,
 }
 
-#[derive(Clone, RustcDecodable)]
+#[derive(Clone, Deserialize)]
 pub struct ServerChannel {
     pub name: String,
     pub admin: bool,
@@ -27,7 +27,7 @@ pub struct ServerChannel {
     pub greetings: Vec<Greeting>,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Twilio {
     pub sid: String,
     pub token: String,
@@ -35,14 +35,14 @@ pub struct Twilio {
     pub recipient: String,
 }
 
-#[derive(Clone, RustcDecodable)]
+#[derive(Clone, Deserialize)]
 pub struct User {
     pub nick: String,
     pub user: String,
     pub real: String,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Logging {
     pub path: String,
 }
@@ -100,7 +100,7 @@ fn validate_logging(logging: &Logging) -> Result<(), String> {
     }
 }
 
-fn decode_section<T: Decodable>(name: &str, table: &Value) -> Result<T, ConfigError> {
+fn decode_section<T: Deserialize>(name: &str, table: &Value) -> Result<T, ConfigError> {
     match table.lookup(name) {
         None => Err(ConfigError::MissingElement(name.to_owned())),
         Some(value) => {

@@ -11,13 +11,14 @@ icndb = {git = "https://github.com/archer884/icndb.git", default-features = fals
 rand = "*"
 regex = "*"
 rsilio = {git = "https://github.com/archer884/rsilio.git", default-features = false}
-rustc-serialize = "*"
+serde = "*"
+serde_macros = "*"
 time = "*"
-toml = "*"
+toml = {version = "*", default-features = false, features = ["serde"]}
 
 [dependencies.hiirc]
 git = "https://github.com/sbstp/hiirc.git"
 
 [features]
-default = []
+default = ["ssl"]
 ssl = ["fortune-cookie/ssl", "icndb/ssl"]
