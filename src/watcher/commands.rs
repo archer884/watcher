@@ -9,26 +9,45 @@ use watcher::{ChnHndl, IrcHndl, UsrHndl, Watcher};
 const DEFAULT_CHUCK: &'static str = "No one really knows Chuck Norris. Not even Chuck Norris!";
 const DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind \
                                       car get exhausted.";
+const DEFAULT_QUOTE: &'static str = "Talk low, talk slow, and don't say too much. -John Wayne";
 
-pub fn chuck(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
+pub fn chuck(irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
     println!("{} has requested some CHUCK ACTION!", user.nickname());
     thread::spawn(move || {
         match get_awesome() {
-                None => irc.privmsg(&user.nickname(), DEFAULT_CHUCK),
-                Some(res) => irc.privmsg(&user.nickname(), &res.joke),
-            }
-            .ok();
+            None => irc.privmsg(channel.name(), DEFAULT_CHUCK),
+            Some(res) => irc.privmsg(channel.name(), &res.joke),
+        }
+        .ok();
     });
 }
 
-pub fn cookie(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
+pub fn cookie(irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
     println!("{} has requested a FORTUNE COOKIE", *user.nickname());
     thread::spawn(move || {
         match fortune_cookie::cookie().ok() {
-                None => irc.privmsg(&user.nickname(), DEFAULT_COOKIE),
-                Some(res) => irc.privmsg(&user.nickname(), &res),
-            }
-            .ok();
+            None => irc.privmsg(channel.name(), DEFAULT_COOKIE),
+            Some(res) => irc.privmsg(channel.name(), &res),
+        }
+        .ok();
+    });
+}
+
+pub fn quote(irc: IrcHndl, channel: ChnHndl, user: UsrHndl, category: Option<String>) {
+    use quote_rs::Service;
+    
+    println!("{} has requested a QUOTE", *user.nickname());
+    thread::spawn(move || {
+        let service = Service::new();
+        let quote = match category {
+            None => service.qod(),
+            Some(ref category) => service.qod_for_category(category),
+        };
+
+        match quote {
+            Err(_) => irc.privmsg(channel.name(), DEFAULT_QUOTE),
+            Ok(quote) => irc.privmsg(channel.name(), &format!("{} -{}", quote.quote, quote.author)),
+        }.ok()
     });
 }
 
