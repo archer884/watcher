@@ -56,7 +56,7 @@ impl<T: NotificationSink> NotificationService<T> {
         let entry = self.sent.entry(nick.to_owned()).or_insert(None);
         let frequency = self.frequency;
 
-        entry.map_or(true, |tm| (Instant::now() - tm) > frequency)
+        entry.map_or(true, |t| t.elapsed() > frequency)
     }
 
     fn update_sent(&mut self, nick: &str) {
