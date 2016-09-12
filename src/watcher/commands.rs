@@ -97,7 +97,7 @@ fn format_dice_results(values: &[u32]) -> String {
     for (idx, &n) in values.iter().enumerate() {
         let count = values.len();
         if idx + 1 == count {
-            write!(buf, "and {}", n).ok();
+            write!(buf, "{}", n).ok();
         } else {
             write!(buf, "{}, ", n).ok();
         }

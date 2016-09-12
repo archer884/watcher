@@ -50,5 +50,11 @@ impl FromStr for Command {
 
 #[inline]
 fn create_dice(s: &[&str]) -> Vec<Dice> {
-    s.iter().flat_map(|s| s.parse().ok()).collect()
+    let dice: Vec<_> = s.iter().flat_map(|s| s.parse().ok()).collect();
+
+    if dice.is_empty() {
+        vec![Dice::new(1, 6)]
+    } else {
+        dice
+    }
 }
