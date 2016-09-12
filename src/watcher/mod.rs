@@ -27,7 +27,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub fn from_config(config: &Config) -> Watcher {
+    pub fn from_config(config: &Config) -> Watcher {      
         Watcher {
             admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
@@ -61,10 +61,13 @@ impl Watcher {
             let user = match channel.user(&user.nickname) {
                 Some(user) => user,
                 None if self.debug => {
-                    println!("User not in channel; not handling message");
+                    println!("warn: user not in channel; not handling message");
                     return;
                 },
-                None => return,
+                None if self.debug => {
+                    println!("Warn: user prefix not found; not handling message");
+                    return;
+                },
             };
 
             match message.code {
