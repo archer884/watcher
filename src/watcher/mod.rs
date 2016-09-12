@@ -31,7 +31,12 @@ impl Watcher {
         Watcher {
             admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
-            channels: config.server.channels.iter().cloned().map(|channel| (channel.name.to_owned(), channel)).collect(),
+            channels: config.server
+                .channels
+                .iter()
+                .cloned()
+                .map(|channel| (channel.name.to_owned(), channel))
+                .collect(),
             watch_list: config.bot.watch_list.iter().cloned().collect(),
             messaging: create_notification_service(config),
             log_path: config.logging.path.clone(),
@@ -49,15 +54,25 @@ impl Watcher {
                 Command::Roll(dice) => commands::roll(irc, channel, user, dice),
 
                 // Bot settings
-                Command::SetNick(ref new_nick) if self.is_admin(&user.nickname()) => commands::set_nick(self, irc, new_nick),
-                Command::SetDebug(enabled) if self.is_admin(&user.nickname()) => commands::set_debug(self, enabled),
+                Command::SetNick(ref new_nick) if self.is_admin(&user.nickname()) => {
+                    commands::set_nick(self, irc, new_nick)
+                }
+                Command::SetDebug(enabled) if self.is_admin(&user.nickname()) => {
+                    commands::set_debug(self, enabled)
+                }
 
                 // Channel commands
-                Command::JoinChannel(ref channel) if self.is_admin(&user.nickname()) => commands::join_channel(self, irc, channel),
-                Command::LeaveChannel(ref channel) if self.is_admin(&user.nickname()) => commands::leave_channel(self, irc, channel),
+                Command::JoinChannel(ref channel) if self.is_admin(&user.nickname()) => {
+                    commands::join_channel(self, irc, channel)
+                }
+                Command::LeaveChannel(ref channel) if self.is_admin(&user.nickname()) => {
+                    commands::leave_channel(self, irc, channel)
+                }
 
                 // Admin options
-                Command::SetTopic(ref topic) if self.is_admin(&user.nickname()) => commands::set_topic(self, irc, channel, topic),
+                Command::SetTopic(ref topic) if self.is_admin(&user.nickname()) => {
+                    commands::set_topic(self, irc, channel, topic)
+                }
                 Command::SetGreeting(ref greeting) => (), // In theory, this will be used to set the greeting the bot uses for people who enter its channel
                 Command::Kill => (), // irc.close().ok() // this was used to kill the IRC connection, but that results in Bad Things(TM)
 
@@ -70,7 +85,8 @@ impl Watcher {
         let mut take = true;
         let greetings = self.channels.get(channel.name()).map(|channel| {
             let user = user.clone();
-            channel.greetings.iter()
+            channel.greetings
+                .iter()
                 .filter(move |greeting| greeting.is_valid(&user.nickname()))
                 .take_while(move |greeting| {
                     let ret = take;
@@ -94,7 +110,7 @@ impl Watcher {
     fn admin_channel(&self, channel: &str) -> bool {
         match self.channels.get(channel) {
             None => false,
-            Some(channel) => channel.admin
+            Some(channel) => channel.admin,
         }
     }
 
@@ -110,10 +126,13 @@ impl Watcher {
 
     fn open_log(&self, channel: &str) -> Result<File, IoError> {
         use time;
-        
+
         // I was going to write a test for this unwrap call, but, honestly, I figure everyone
         // and their dog knows that this particular format specifier is fine...
-        let path = format!("{}/{}", self.log_path, time::strftime("%F", &time::now()).unwrap() + "_" + channel.trim_left_matches('#') + ".log");
+        let path = format!("{}/{}",
+                           self.log_path,
+                           time::strftime("%F", &time::now()).unwrap() + "_" +
+                           channel.trim_left_matches('#') + ".log");
         OpenOptions::new().write(true).create(true).append(true).open(&path)
     }
 
@@ -132,13 +151,9 @@ impl Watcher {
 }
 
 fn create_notification_service(config: &Config) -> NotificationService<Sms> {
-    NotificationService::new(
-        Sms::new(
-            &*config.twilio.sid,
-            &*config.twilio.token,
-            &*config.twilio.number,
-        ),
-        &*config.twilio.recipient,
-        Duration::from_secs(config.bot.message_frequency * 60),
-    )
+    NotificationService::new(Sms::new(&*config.twilio.sid,
+                                      &*config.twilio.token,
+                                      &*config.twilio.number),
+                             &*config.twilio.recipient,
+                             Duration::from_secs(config.bot.message_frequency * 60))
 }

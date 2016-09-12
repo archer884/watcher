@@ -74,9 +74,8 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 buf
             };
 
-            let table: Value = try!(data.parse().map_err(|e| ConfigError::Unreadable(
-                format!("{:?}", e)
-            )));
+            let table: Value = try!(data.parse()
+                .map_err(|e| ConfigError::Unreadable(format!("{:?}", e))));
 
             let logging = try!(decode_section("logging", &table));
             if let Err(message) = validate_logging(&logging) {
@@ -104,8 +103,10 @@ fn validate_logging(logging: &Logging) -> Result<(), String> {
 fn decode_section<T: Decodable>(name: &str, table: &Value) -> Result<T, ConfigError> {
     match table.lookup(name) {
         None => Err(ConfigError::MissingElement(name.to_owned())),
-        Some(value) => decode(value.clone()).ok_or_else(|| ConfigError::BadElement(
-            format!("unable to decode {:?} :: {:?}", name, table)
-        ))
+        Some(value) => {
+            decode(value.clone()).ok_or_else(|| {
+                ConfigError::BadElement(format!("unable to decode {:?} :: {:?}", name, table))
+            })
+        }
     }
 }

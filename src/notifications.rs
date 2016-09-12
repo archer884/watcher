@@ -17,13 +17,16 @@ pub trait NotificationSink {
 // represent, respectively, SMS or email sinks.
 pub struct NotificationService<T: NotificationSink> {
     sink: T,
-    sent: HashMap<String, Option<Instant>>,
+    sent: HashMap<String, Instant>,
     recipient: String,
     frequency: Duration,
 }
 
 impl<T: NotificationSink> NotificationService<T> {
-    pub fn new<S: Into<String>>(sink: T, recipient: S, frequency: Duration) -> NotificationService<T> {
+    pub fn new<S: Into<String>>(sink: T,
+                                recipient: S,
+                                frequency: Duration)
+                                -> NotificationService<T> {
         NotificationService {
             sink: sink,
             sent: HashMap::new(),
@@ -35,7 +38,6 @@ impl<T: NotificationSink> NotificationService<T> {
     /// Notifies the user that a watched nick has entered a watched channel
     pub fn notify_channel(&mut self, nick: &str, channel: &str) -> NotificationResult {
         if self.can_send(nick) {
-            self.update_sent(nick);
             self.sink.send_message(&self.recipient, &format!("{} has joined {}", nick, channel))
         } else {
             NotificationResult::Withheld
@@ -45,7 +47,6 @@ impl<T: NotificationSink> NotificationService<T> {
     /// Notifies the user that the bot has recieved a private message
     pub fn notify_pm(&mut self, nick: &str, message: &str) -> NotificationResult {
         if self.can_send(nick) {
-            self.update_sent(nick);
             self.sink.send_message(&self.recipient, &format!("PM from {}: {}", nick, message))
         } else {
             NotificationResult::Withheld
@@ -53,14 +54,10 @@ impl<T: NotificationSink> NotificationService<T> {
     }
 
     fn can_send(&mut self, nick: &str) -> bool {
-        let entry = self.sent.entry(nick.to_owned()).or_insert(None);
         let frequency = self.frequency;
-
-        entry.map_or(true, |t| t.elapsed() > frequency)
-    }
-
-    fn update_sent(&mut self, nick: &str) {
-        self.sent.insert(nick.to_owned(), Some(Instant::now()));
+        self.sent
+            .insert(nick.to_owned(), Instant::now())
+            .map_or(true, |last| last.elapsed() > frequency)
     }
 }
 

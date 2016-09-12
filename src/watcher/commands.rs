@@ -7,15 +7,17 @@ use std::thread;
 use watcher::{ChnHndl, IrcHndl, UsrHndl, Watcher};
 
 const DEFAULT_CHUCK: &'static str = "No one really knows Chuck Norris. Not even Chuck Norris!";
-const DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind car get exhausted.";
+const DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind \
+                                      car get exhausted.";
 
 pub fn chuck(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
     println!("{} has requested some CHUCK ACTION!", user.nickname());
     thread::spawn(move || {
         match get_awesome() {
-            None => irc.privmsg(&user.nickname(), DEFAULT_CHUCK),
-            Some(res) => irc.privmsg(&user.nickname(), &res.joke),
-        }.ok();
+                None => irc.privmsg(&user.nickname(), DEFAULT_CHUCK),
+                Some(res) => irc.privmsg(&user.nickname(), &res.joke),
+            }
+            .ok();
     });
 }
 
@@ -23,9 +25,10 @@ pub fn cookie(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
     println!("{} has requested a FORTUNE COOKIE", *user.nickname());
     thread::spawn(move || {
         match fortune_cookie::cookie().ok() {
-            None => irc.privmsg(&user.nickname(), DEFAULT_COOKIE),
-            Some(res) => irc.privmsg(&user.nickname(), &res),
-        }.ok();
+                None => irc.privmsg(&user.nickname(), DEFAULT_COOKIE),
+                Some(res) => irc.privmsg(&user.nickname(), &res),
+            }
+            .ok();
     });
 }
 
@@ -38,7 +41,12 @@ pub fn roll(irc: IrcHndl, channel: ChnHndl, user: UsrHndl, dice: Vec<Dice>) {
         let results: Vec<u32> = dice.iter().flat_map(|roll| roll.gen_result(&mut rng)).collect();
         let formatted_results = format_dice_results(&results);
 
-        irc.privmsg(channel.name(), &format!("{} rolled {} ({})", *user.nickname(), formatted_results, results.iter().sum::<u32>())).ok();
+        irc.privmsg(channel.name(),
+                     &format!("{} rolled {} ({})",
+                              *user.nickname(),
+                              formatted_results,
+                              results.iter().sum::<u32>()))
+            .ok();
     });
 }
 
@@ -50,21 +58,20 @@ pub fn set_nick(watcher: &mut Watcher, irc: IrcHndl, nick: &str) {
 
 pub fn set_debug(watcher: &mut Watcher, enabled: bool) {
     watcher.debug = enabled;
-    println!("debug mode {}", if enabled { "enabled" } else { "disabled" });
+    println!("debug mode {}",
+             if enabled { "enabled" } else { "disabled" });
 }
 
 pub fn join_channel(watcher: &mut Watcher, irc: IrcHndl, channel: &str) {
     if !watcher.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
-        watcher.channels.insert(
-            channel.to_owned(),
-            ServerChannel {
-                name: channel.to_owned(),
-                topic: None,
-                admin: false,
-                log_chat: true,
-                greetings: vec![],
-            },
-        );
+        watcher.channels.insert(channel.to_owned(),
+                                ServerChannel {
+                                    name: channel.to_owned(),
+                                    topic: None,
+                                    admin: false,
+                                    log_chat: true,
+                                    greetings: vec![],
+                                });
     }
 }
 
@@ -88,9 +95,9 @@ pub fn set_topic(watcher: &mut Watcher, irc: IrcHndl, channel: ChnHndl, topic: &
 
 fn format_dice_results(values: &[u32]) -> String {
     use std::fmt::Write;
-    
+
     if values.len() == 1 {
-        return values.first().unwrap().to_string()
+        return values.first().unwrap().to_string();
     }
 
     let mut buf = String::new();

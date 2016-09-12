@@ -41,7 +41,7 @@ impl Listener for Watcher {
     /// Instead, we should be handling them here.
     fn user_join(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
         use notifications::NotificationResult;
-        
+
         // do not greet yourself
         if &self.identity.nick == &*user.nickname() {
             return;
@@ -58,7 +58,9 @@ impl Listener for Watcher {
         // notify owner of watched user entering channel or of user entering watched channel
         if self.admin_channel(channel.name()) || self.watching(&user.nickname()) {
             if self.debug {
-                println!("sending SMS notification for {} in {}", user.nickname(), channel.name());
+                println!("sending SMS notification for {} in {}",
+                         user.nickname(),
+                         channel.name());
             }
 
             let result = self.messaging.notify_channel(&user.nickname(), channel.name());
