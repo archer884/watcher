@@ -6,8 +6,8 @@ use icndb::next as get_awesome;
 use std::thread;
 use watcher::{ChnHndl, IrcHndl, UsrHndl, Watcher};
 
-const DEFAULT_CHUCK: &'static str = "Sorry, I can't think of one.";
-const DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind car get exhausted. You have only yourself to blame for this.";
+const DEFAULT_CHUCK: &'static str = "No one really knows Chuck Norris. Not even Chuck Norris!";
+const DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind car get exhausted.";
 
 pub fn chuck(irc: IrcHndl, _: ChnHndl, user: UsrHndl) {
     println!("{} has requested some CHUCK ACTION!", user.nickname());
