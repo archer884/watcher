@@ -28,6 +28,11 @@ impl Listener for Watcher {
             println!("PM from {}: {}", sender, message);
         }
 
+        // do not waste time talking to statserv
+        if sender == "StatServ" {
+            return;
+        }
+
         // we cannot handle commands from PM right here (or, you know, we can't currently)
         // so just tell the bastard we're afk and call it good
         irc.privmsg(sender, "AFK").ok();
