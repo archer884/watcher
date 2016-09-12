@@ -2,9 +2,11 @@
 #![cfg_attr(feature="clippy", plugin(clippy))]
 #![feature(slice_patterns)]
 
+extern crate dice;
 extern crate fortune_cookie;
 extern crate hiirc;
 extern crate icndb;
+extern crate rand;
 extern crate regex;
 extern crate rsilio;
 extern crate rustc_serialize;
