@@ -5,9 +5,11 @@ authors = ["J/A <archer884@gmail.com>"]
 
 [dependencies]
 clippy = {version = "*", optional = true}
+dice = {git = "https://github.com/archer884/dice.git"}
 fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git", default-features = false}
 hiirc = "*"
 icndb = {git = "https://github.com/archer884/icndb.git", default-features = false}
+rand = "*"
 regex = "*"
 rsilio = {git = "https://github.com/archer884/rsilio.git", default-features = false}
 rustc-serialize = "*"

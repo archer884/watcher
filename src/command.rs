@@ -1,8 +1,10 @@
+use dice::Dice;
 use std::str::FromStr;
 
 pub enum Command {
     Chuck,
     Cookie,
+    Roll(Vec<Dice>),
 
     // bot options
     SetNick(String),
@@ -26,6 +28,7 @@ impl FromStr for Command {
         match data[..] {
             [".chuck"] => Ok(Command::Chuck),
             [".cookie"] => Ok(Command::Cookie),
+            [".roll", ref commands..] => Ok(Command::Roll(create_dice(commands))),
 
             // bot options
             [".debug", enabled] => Ok(Command::SetDebug(enabled.parse().unwrap_or(false))),
@@ -43,4 +46,9 @@ impl FromStr for Command {
             _ => Err(()),
         }
     }
+}
+
+#[inline]
+fn create_dice(s: &[&str]) -> Vec<Dice> {
+    s.iter().flat_map(|s| s.parse().ok()).collect()
 }

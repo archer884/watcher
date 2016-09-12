@@ -3,9 +3,11 @@ name = "watcher"
 version = "0.1.0"
 dependencies = [
  "clippy 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dice 2.0.0 (git+https://github.com/archer884/dice.git)",
  "fortune-cookie 0.1.0 (git+https://github.com/archer884/fortune-cookie.git)",
  "hiirc 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "icndb 0.1.0 (git+https://github.com/archer884/icndb.git)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.76 (registry+https://github.com/rust-lang/crates.io-index)",
  "rsilio 0.1.0 (git+https://github.com/archer884/rsilio.git)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -57,6 +59,16 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "dice"
+version = "2.0.0"
+source = "git+https://github.com/archer884/dice.git#b514103fd521933603af96451b81b47737338634"
+dependencies = [
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.76 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -532,6 +544,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum clippy 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)" = "d19bda68c3db98e3a780342f6101b44312fef20a5f13ce756d1202a35922b01b"
 "checksum clippy_lints 0.0.90 (registry+https://github.com/rust-lang/crates.io-index)" = "3d4ed67c69b9bb35169be2538691d290a3aa0cbfd4b9f0bfb7c221fc1d399a96"
 "checksum cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0e3d6405328b6edb412158b3b7710e2634e23f3614b9bb1c412df7952489a626"
+"checksum dice 2.0.0 (git+https://github.com/archer884/dice.git)" = "<none>"
 "checksum encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "6b0d943856b990d12d3b55b359144ff341533e516d94098b1d3fc1ac666d36ec"
 "checksum encoding-index-japanese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "04e8b2ff42e9a05335dbf8b5c6f7567e5591d0d916ccef4e0b1710d32a0d0c91"
 "checksum encoding-index-korean 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4dc33fb8e6bcba213fe2f14275f0963fd16f0a02c878e3095ecfdf5bee529d81"
