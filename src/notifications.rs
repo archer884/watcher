@@ -23,10 +23,7 @@ pub struct NotificationService<T: NotificationSink> {
 }
 
 impl<T: NotificationSink> NotificationService<T> {
-    pub fn new<S: Into<String>>(sink: T,
-                                recipient: S,
-                                frequency: Duration)
-                                -> NotificationService<T> {
+    pub fn new<S: Into<String>>(sink: T, recipient: S, frequency: Duration) -> NotificationService<T> {
         NotificationService {
             sink: sink,
             sent: HashMap::new(),

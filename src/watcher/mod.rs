@@ -31,16 +31,13 @@ impl Watcher {
         Watcher {
             admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
-            channels: config.server
-                .channels
-                .iter()
-                .cloned()
+            channels: config.server.channels.iter().cloned()
                 .map(|channel| (channel.name.to_owned(), channel))
                 .collect(),
             watch_list: config.bot.watch_list.iter().cloned().collect(),
             messaging: create_notification_service(config),
             log_path: config.logging.path.clone(),
-            debug: false,
+            debug: true,
         }
     }
 
@@ -155,5 +152,5 @@ fn create_notification_service(config: &Config) -> NotificationService<Sms> {
                                       &*config.twilio.token,
                                       &*config.twilio.number),
                              &*config.twilio.recipient,
-                             Duration::from_secs(config.bot.message_frequency * 60))
+                             Duration::from_secs(config.bot.message_frequency))
 }

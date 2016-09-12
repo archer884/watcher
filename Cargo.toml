@@ -20,4 +20,4 @@ git = "https://github.com/sbstp/hiirc.git"
 
 [features]
 default = []
-ssl = ["fortune-cookie/ssl", "icndb/ssl", "rsilio/ssl"]
+ssl = ["fortune-cookie/ssl", "icndb/ssl"]
