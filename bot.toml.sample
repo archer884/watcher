@@ -26,10 +26,10 @@ watch_list = [
 ]
 
 [twilio]
-sid = "ACadfefde88d0b6649c9200123684fb15f"
-token = "d07c27c0d8311b89a04309ed5a8038a9"
-number = "8065133678"
-recipient = "8063416455"
+sid = "<sid here>"
+token = "<token here>"
+number = "<number here>"
+recipients = [{auth = "<auth phrase here>", number = "<number here>"}]
 
 [logging]
 path = "/log/dir/here"
