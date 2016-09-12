@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-
-use time;
-use time::{Duration, Timespec};
+use time::{self, Duration, Timespec};
 
 pub use rsilio::MessagingService as Sms;
 

@@ -1,4 +1,4 @@
-use super::{IrcHndl, ChnHndl, UsrHndl, Watcher};
+use watcher::{IrcHndl, ChnHndl, UsrHndl, Watcher};
 use hiirc::{Event, IrcWrite, Listener};
 
 impl Listener for Watcher {

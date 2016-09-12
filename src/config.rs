@@ -1,9 +1,8 @@
-use std::fs;
-use std::fs::File;
-use std::io::Read;
-
 use greetings::Greeting;
 use rustc_serialize::Decodable;
+use std::fs::File;
+use std::fs;
+use std::io::Read;
 use toml::{decode, Value};
 
 #[derive(RustcDecodable)]

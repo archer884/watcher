@@ -1,17 +1,16 @@
-use std::fs::{File, OpenOptions};
-use std::io::Error as IoError;
-use std::io::Write;
-use std::collections::{HashMap, HashSet};
+mod commands;
+mod listener;
 
 use command::Command;
 use config::{Config, ServerChannel, User};
 use hiirc::{Channel, ChannelUser, Code, Irc, IrcWrite, Message, Prefix};
 use notifications::{NotificationService, Sms};
-use time;
+use std::collections::{HashMap, HashSet};
+use std::fs::{File, OpenOptions};
+use std::io::Error as IoError;
+use std::io::Write;
 use time::Duration;
-
-mod commands;
-mod listener;
+use time;
 
 pub type IrcHndl = ::std::sync::Arc<Irc>;
 pub type ChnHndl = ::std::sync::Arc<Channel>;
