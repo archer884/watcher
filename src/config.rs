@@ -8,7 +8,7 @@ use toml::{decode, Value};
 #[derive(RustcDecodable)]
 pub struct Bot {
     pub admin: Vec<String>,
-    pub message_frequency: i64,
+    pub message_frequency: u64,
     pub watch_list: Vec<String>,
 }
 

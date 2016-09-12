@@ -2,21 +2,65 @@ use watcher::{IrcHndl, ChnHndl, UsrHndl, Watcher};
 use hiirc::{Event, IrcWrite, Listener};
 
 impl Listener for Watcher {
-    #[allow(unused)]
-    fn any(&mut self, irc: IrcHndl, event: &Event) {
-        if let Event::Message(ref message) = *event {
-            self.handle_message(irc, message);
+    fn any(&mut self, _: IrcHndl, event: &Event) {
+        if self.debug {
+            println!("{:?}", event);
         }
     }
 
+    /// Handle general channel messages.
+    ///
+    /// The first thing we do here is log all incoming messages (if logging is active, anyway),
+    /// and then we look to handle any commands that arrive via normal channel chat.
     fn channel_msg(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl, msg: &str) {
         // Log chat
         self.log(channel.name(), &user.nickname(), msg);
-        println!("{}: {}", user.nickname(), msg);
+        println!("{}/{}: {}", channel.name(), user.nickname(), msg);
 
         // Handle public chat commands
         if msg.starts_with('.') {
             self.handle_command(irc, channel, user, msg);
+        }
+    }
+
+    fn private_msg(&mut self, irc: IrcHndl, sender: &str, message: &str) {
+        if self.debug {
+            println!("PM from {}: {}", sender, message);
+        }
+
+        // we cannot handle commands from PM right here (or, you know, we can't currently)
+        // so just tell the bastard we're afk and call it good
+        irc.privmsg(sender, "AFK").ok();
+
+        self.messaging.notify_pm(sender, message);
+    }
+
+    /// Handle user_join events.
+    ///
+    /// We currently handle user join events on the "any" listener, which is a damn stupid idea.
+    /// Instead, we should be handling them here.
+    fn user_join(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
+        // do not greet yourself
+        if &self.identity.nick == &*user.nickname() {
+            return;
+        }
+
+        // +o bot admin
+        if self.is_admin(&user.nickname()) {
+            match irc.raw(format!("MODE {} +o {}", channel.name(), user.nickname())) {
+                Err(e) => println!("{:?}", e),
+                Ok(_) => println!("+o {}", user.nickname()),
+            }
+        }
+
+        // notify owner of watched user entering channel or of user entering watched channel
+        if self.admin_channel(channel.name()) || self.watching(&user.nickname()) {
+            self.messaging.notify_channel(&user.nickname(), channel.name());
+        }
+
+        // greet user
+        if self.admin_channel(channel.name()) {
+            self.greet_user(irc, channel, user);
         }
     }
 
@@ -29,15 +73,15 @@ impl Listener for Watcher {
     }
 
     fn welcome(&mut self, irc: IrcHndl) {
-        // join all our channels
         for channel in self.channels.values() {
             irc.join(&channel.name, None).ok();
-            match channel.topic {
-                Some(ref topic) if channel.admin => match irc.set_topic(&channel.name, topic) {
-                    Err(e) => println!("{:?}", e),
-                    Ok(_) => println!("{}: {}", channel.name, topic),
-                },
-                _ => ()
+            if channel.admin {
+                if let Some(ref topic) = channel.topic {
+                    match irc.set_topic(&channel.name, topic) {
+                        Err(e) => println!("{:?}", e),
+                        Ok(_) => println!("topic set for {}: {}", channel.name, topic),
+                    }
+                }
             }
         }
     }

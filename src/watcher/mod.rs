@@ -3,18 +3,18 @@ mod listener;
 
 use command::Command;
 use config::{Config, ServerChannel, User};
-use hiirc::{Channel, ChannelUser, Code, Irc, IrcWrite, Message, Prefix};
+use hiirc::{Channel, ChannelUser, Irc, IrcWrite};
 use notifications::{NotificationService, Sms};
 use std::collections::{HashMap, HashSet};
 use std::fs::{File, OpenOptions};
 use std::io::Error as IoError;
 use std::io::Write;
-use time::Duration;
-use time;
+use std::sync::Arc;
+use std::time::Duration;
 
-pub type IrcHndl = ::std::sync::Arc<Irc>;
-pub type ChnHndl = ::std::sync::Arc<Channel>;
-pub type UsrHndl = ::std::sync::Arc<ChannelUser>;
+pub type IrcHndl = Arc<Irc>;
+pub type ChnHndl = Arc<Channel>;
+pub type UsrHndl = Arc<ChannelUser>;
 
 pub struct Watcher {
     admin: HashSet<String>,
@@ -27,7 +27,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub fn from_config(config: &Config) -> Watcher {      
+    pub fn from_config(config: &Config) -> Watcher {
         Watcher {
             admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
@@ -36,91 +36,6 @@ impl Watcher {
             messaging: create_notification_service(config),
             log_path: config.logging.path.clone(),
             debug: false,
-        }
-    }
-
-    fn handle_message(&mut self, irc: IrcHndl, message: &Message) {
-        // If we're in debug mode, print this message to the screen no matter what it is.
-        if self.debug {
-            println!("{:?}", message);
-        }
-
-        // We're going to need the channel later on
-        let channel = match message.args.get(0).and_then(|s| irc.channel(s.as_ref())) {
-            Some(channel) => channel,
-            None if self.debug => {
-                println!("Unable to determine channel; not handling message");
-                return;
-            },
-            None => return,
-        };
-
-        // If there's no user prefix on this message, we can't determine
-        // the user associated with it and there's nothing to do
-        if let Some(Prefix::User(ref user)) = message.prefix {
-            let user = match channel.user(&user.nickname) {
-                Some(user) => user,
-                None if self.debug => {
-                    println!("warn: user not in channel; not handling message");
-                    return;
-                },
-                None if self.debug => {
-                    println!("Warn: user prefix not found; not handling message");
-                    return;
-                },
-            };
-
-            match message.code {
-                // Make bot stop greeting itself -.-
-                Code::Join if &self.identity.nick.as_ref() == user.nickname().as_ref() => return,
-
-                // Bot admin has joined channel
-                Code::Join if self.is_admin(&user.nickname()) => {
-                    match irc.raw(format!("MODE {} +o {}", channel.name(), user.nickname())) {
-                        Err(e) => println!("{:?}", e),
-                        Ok(_) => println!("+o {}", user.nickname()),
-                    }
-                    self.greet_user(irc, channel, user);
-                }
-
-                Code::Join => {
-                    // A user has joined an admin channel OR a watched user has joined any channel
-                    if self.admin_channel(channel.name()) || self.watching(&user.nickname()) {
-                        self.messaging.notify_channel(&user.nickname(), channel.name());
-                    }
-
-                    // A user has joined an admin channel
-                    if self.admin_channel(channel.name()) {
-                        self.greet_user(irc, channel, user);
-                    }
-                },
-
-                // Bot has received private message; for right now, we're just going to respond
-                // that we're AFK and call it good. Later on, we could handle these messages the
-                // way we handle channel messages. It is unbelievably complicated to detect a pm.
-                Code::Privmsg if message.args.get(0) == Some(&self.identity.nick) => {
-                    // Hack to ignore StatServ
-                    if user.nickname().as_ref() == "StatServ" {
-                        return;
-                    }
-
-                    let content = message.args.get(1).map_or("", |s| s.as_ref());
-                    if content.starts_with('.') {
-                        self.handle_command(irc, channel, user.clone(), content);
-                    } else {
-                        irc.privmsg(&user.nickname(), "AFK").ok();
-                    }
-
-                    // Going to try letting the user know that the bot has received a PM, just...
-                    self.messaging.notify_pm(
-                        &user.nickname(),
-                        content,
-                    );
-                },
-
-                // This is an event code we don't cover yet
-                _ => (),
-            }
         }
     }
 
@@ -194,18 +109,14 @@ impl Watcher {
     }
 
     fn open_log(&self, channel: &str) -> Result<File, IoError> {
+        use time;
+        
         // I was going to write a test for this unwrap call, but, honestly, I figure everyone
         // and their dog knows that this particular format specifier is fine...
-        let path = format!(
-            "{}/{}",
-            self.log_path,
-            time::strftime("%F", &time::now()).unwrap() + "_" + channel.trim_left_matches('#') + ".log",
-        );
-
+        let path = format!("{}/{}", self.log_path, time::strftime("%F", &time::now()).unwrap() + "_" + channel.trim_left_matches('#') + ".log");
         OpenOptions::new().write(true).create(true).append(true).open(&path)
     }
 
-    #[allow(unused)] // once again, we are swallowing the result of this write
     fn log(&self, channel: &str, nick: &str, message: &str) {
         if !self.logging(channel) {
             return;
@@ -214,7 +125,7 @@ impl Watcher {
         match self.open_log(channel) {
             Err(e) => println!("{:?}", e),
             Ok(mut file) => {
-                writeln!(file, "{}: {}", nick, message);
+                writeln!(file, "{}: {}", nick, message).ok();
             }
         };
     }
@@ -228,6 +139,6 @@ fn create_notification_service(config: &Config) -> NotificationService<Sms> {
             &*config.twilio.number,
         ),
         &*config.twilio.recipient,
-        Duration::minutes(config.bot.message_frequency),
+        Duration::from_secs(config.bot.message_frequency * 60),
     )
 }

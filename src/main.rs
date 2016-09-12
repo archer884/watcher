@@ -21,7 +21,7 @@ mod watcher;
 
 use config::Config;
 use hiirc::{ReconnectionSettings, Settings};
-use time::Duration;
+use std::time::Duration;
 use watcher::Watcher;
 
 fn main() {
@@ -42,8 +42,8 @@ fn run_bot(config: &Config) -> Result<(), hiirc::Error> {
         .realname(&config.user.real)
         .reconnection(ReconnectionSettings::Reconnect {
             max_attempts: 5,
-            delay_between_attempts: Duration::seconds(5),
-            delay_after_disconnect: Duration::seconds(15),
+            delay_between_attempts: Duration::from_secs(5),
+            delay_after_disconnect: Duration::from_secs(15),
         })
         .auto_ping(true)
         .dispatch(Watcher::from_config(config))
