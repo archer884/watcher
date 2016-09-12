@@ -7,6 +7,7 @@ extern crate dice;
 extern crate fortune_cookie;
 extern crate hiirc;
 extern crate icndb;
+extern crate quote_rs;
 extern crate rand;
 extern crate regex;
 extern crate rsilio;

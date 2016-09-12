@@ -4,6 +4,7 @@ use std::str::FromStr;
 pub enum Command {
     Chuck,
     Cookie,
+    Quote(Option<String>),
     Roll(Vec<Dice>),
 
     // bot options
@@ -28,6 +29,8 @@ impl FromStr for Command {
         match data[..] {
             [".chuck"] => Ok(Command::Chuck),
             [".cookie"] => Ok(Command::Cookie),
+            [".quote"] => Ok(Command::Quote(None)),
+            [".quote", category] => Ok(Command::Quote(Some(category.into()))),
             [".roll", ref commands..] => Ok(Command::Roll(create_dice(commands))),
 
             // bot options
