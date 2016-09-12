@@ -1,5 +1,5 @@
 use regex::Regex;
-use rustc_serialize::{Decodable, Decoder};
+use serde::{Deserialize, Deserializer};
 
 #[derive(Clone)]
 pub struct Greeting {
@@ -84,20 +84,20 @@ impl Greeting {
 //     }
 // }
 
-impl Decodable for Greeting {
-    fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
-        #[derive(RustcDecodable)]
-        struct Core {
+impl Deserialize for Greeting {
+    fn deserialize<D: Deserializer>(d: &mut D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Inner {
             passthru: bool,
             filter: Option<String>,
             message: String,
         }
 
-        let core = try!(Core::decode(d));
+        let inner = Inner::deserialize(d)?;
         Ok(Greeting {
-            passthru: core.passthru,
-            filter: core.filter.and_then(|f| Regex::new(&f).ok()),
-            message: core.message,
+            passthru: inner.passthru,
+            filter: inner.filter.and_then(|f| Regex::new(&f).ok()),
+            message: inner.message,
         })
     }
 }
