@@ -58,7 +58,7 @@ impl<T: NotificationSink> NotificationService<T> {
         let entry = self.sent.entry(nick.to_owned()).or_insert(None);
         let frequency = self.frequency;
 
-        entry.clone().map(|tm| (time::get_time() - tm) > frequency).unwrap_or(true)
+        entry.map_or(true, |tm| (time::get_time() - tm) > frequency)
     }
 
     fn update_sent(&mut self, nick: &str) {
@@ -68,7 +68,7 @@ impl<T: NotificationSink> NotificationService<T> {
 
 impl NotificationSink for Sms {
     fn send_message(&self, recipient: &str, message: &str) -> NotificationResult {
-        match self.send_message(recipient, &message) {
+        match self.send_message(recipient, message) {
             Ok(_) => NotificationResult::Sent,
             Err(e) => NotificationResult::Failure(e),
         }

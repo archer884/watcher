@@ -1,3 +1,5 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
 #![feature(slice_patterns)]
 
 extern crate fortune_cookie;
@@ -9,9 +11,6 @@ extern crate rustc_serialize;
 extern crate time;
 extern crate toml;
 
-use hiirc::{ReconnectionSettings, Settings};
-use time::Duration;
-
 mod command;
 mod config;
 mod greetings;
@@ -19,6 +18,8 @@ mod notifications;
 mod watcher;
 
 use config::Config;
+use hiirc::{ReconnectionSettings, Settings};
+use time::Duration;
 use watcher::Watcher;
 
 fn main() {

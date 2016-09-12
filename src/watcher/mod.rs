@@ -83,12 +83,12 @@ impl Watcher {
 
                 Code::Join => {
                     // A user has joined an admin channel OR a watched user has joined any channel
-                    if self.admin_channel(&channel.name()) || self.watching(&user.nickname()) {
-                        self.messaging.notify_channel(&user.nickname(), &channel.name());
+                    if self.admin_channel(channel.name()) || self.watching(&user.nickname()) {
+                        self.messaging.notify_channel(&user.nickname(), channel.name());
                     }
 
                     // A user has joined an admin channel
-                    if self.admin_channel(&channel.name()) {
+                    if self.admin_channel(channel.name()) {
                         self.greet_user(irc, channel, user);
                     }
                 },
@@ -102,8 +102,8 @@ impl Watcher {
                         return;
                     }
 
-                    let content = message.args.get(1).map(|s| s.as_ref()).unwrap_or("");
-                    if content.starts_with(".") {
+                    let content = message.args.get(1).map_or("", |s| s.as_ref());
+                    if content.starts_with('.') {
                         self.handle_command(irc, channel, user.clone(), content);
                     } else {
                         irc.privmsg(&user.nickname(), "AFK").ok();
@@ -163,7 +163,7 @@ impl Watcher {
 
         if let Some(greetings) = greetings {
             for greeting in greetings {
-                irc.privmsg(&channel.name(), &greeting.message(&user.nickname())).ok();
+                irc.privmsg(channel.name(), &greeting.message(&user.nickname())).ok();
             }
         }
     }
@@ -176,7 +176,7 @@ impl Watcher {
     fn admin_channel(&self, channel: &str) -> bool {
         match self.channels.get(channel) {
             None => false,
-            Some(ref channel) => channel.admin
+            Some(channel) => channel.admin
         }
     }
 
@@ -187,9 +187,7 @@ impl Watcher {
 
     #[inline]
     fn logging(&self, channel: &str) -> bool {
-        self.channels.get(channel).map(
-            |channel| channel.log_chat
-        ).unwrap_or(false)
+        self.channels.get(channel).map_or(false, |channel| channel.log_chat)
     }
 
     fn open_log(&self, channel: &str) -> Result<File, IoError> {
@@ -222,11 +220,11 @@ impl Watcher {
 fn create_notification_service(config: &Config) -> NotificationService<Sms> {
     NotificationService::new(
         Sms::new(
-            config.twilio.sid.as_ref(),
-            config.twilio.token.as_ref(),
-            config.twilio.number.as_ref(),
+            &*config.twilio.sid,
+            &*config.twilio.token,
+            &*config.twilio.number,
         ),
-        config.twilio.recipient.as_ref(),
+        &*config.twilio.recipient,
         Duration::minutes(config.bot.message_frequency),
     )
 }
