@@ -40,6 +40,8 @@ impl Listener for Watcher {
     /// We currently handle user join events on the "any" listener, which is a damn stupid idea.
     /// Instead, we should be handling them here.
     fn user_join(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
+        use notifications::NotificationResult;
+        
         // do not greet yourself
         if &self.identity.nick == &*user.nickname() {
             return;
@@ -55,7 +57,19 @@ impl Listener for Watcher {
 
         // notify owner of watched user entering channel or of user entering watched channel
         if self.admin_channel(channel.name()) || self.watching(&user.nickname()) {
-            self.messaging.notify_channel(&user.nickname(), channel.name());
+            if self.debug {
+                println!("sending SMS notification for {} in {}", user.nickname(), channel.name());
+            }
+
+            let result = self.messaging.notify_channel(&user.nickname(), channel.name());
+
+            if self.debug {
+                match result {
+                    NotificationResult::Withheld => println!("notification withheld"),
+                    NotificationResult::Sent => println!("notification sent"),
+                    NotificationResult::Failure(e) => println!("notification failed: {:?}", e),
+                }
+            }
         }
 
         // greet user
