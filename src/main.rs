@@ -1,7 +1,9 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(custom_derive, plugin, question_mark, slice_patterns)]
-#![plugin(serde_macros)]
+#![feature(custom_derive, proc_macro, question_mark, slice_patterns)]
+
+#[macro_use]
+extern crate serde_derive;
 
 extern crate dice;
 extern crate fortune_cookie;
