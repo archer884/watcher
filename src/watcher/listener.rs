@@ -53,7 +53,7 @@ impl Listener for Watcher {
         }
 
         // +o bot admin
-        if self.is_admin(&user.nickname()) {
+        if self.admin_channel(channel.name()) && self.is_admin(&user.nickname()) {
             match irc.raw(format!("MODE {} +o {}", channel.name(), user.nickname())) {
                 Err(e) => println!("{:?}", e),
                 Ok(_) => println!("+o {}", user.nickname()),
