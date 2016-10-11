@@ -1,5 +1,6 @@
 use watcher::{IrcHndl, ChnHndl, UsrHndl, Watcher};
 use hiirc::{Event, IrcWrite, Listener};
+use notifications::{NotificationResult, NotificationFailure};
 
 impl Listener for Watcher {
     fn any(&mut self, _: IrcHndl, event: &Event) {
@@ -37,7 +38,11 @@ impl Listener for Watcher {
         // so just tell the bastard we're afk and call it good
         irc.privmsg(sender, "AFK").ok();
 
-        self.messaging.notify_pm(sender, message);
+        let message_result = self.messaging.notify_pm(sender, message);
+
+        if self.debug {
+            log_message_result(&message_result);
+        }
     }
 
     /// Handle user_join events.
@@ -45,8 +50,6 @@ impl Listener for Watcher {
     /// We currently handle user join events on the "any" listener, which is a damn stupid idea.
     /// Instead, we should be handling them here.
     fn user_join(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
-        use notifications::NotificationResult;
-
         // do not greet yourself
         if &self.identity.nick == &*user.nickname() {
             return;
@@ -68,14 +71,10 @@ impl Listener for Watcher {
                          channel.name());
             }
 
-            let result = self.messaging.notify_channel(&user.nickname(), channel.name());
+            let message_result = self.messaging.notify_channel(&user.nickname(), channel.name());
 
             if self.debug {
-                match result {
-                    NotificationResult::Withheld => println!("notification withheld"),
-                    NotificationResult::Sent => println!("notification sent"),
-                    NotificationResult::Failure(e) => println!("notification failed: {:?}", e),
-                }
+                log_message_result(&message_result);
             }
         }
 
@@ -105,5 +104,14 @@ impl Listener for Watcher {
                 }
             }
         }
+    }
+}
+
+fn log_message_result(message_result: &NotificationResult) {
+    match message_result {
+        &Ok(()) => println!("notification sent"),
+        &Err(NotificationFailure::RecentlyNotified) => println!("notification withheld: recently notified"),
+        &Err(NotificationFailure::Throttled) => println!("notification withheld: too many messages sent recently"),
+        &Err(NotificationFailure::Failure(ref e)) => println!("notification failed: {:?}", e),
     }
 }
