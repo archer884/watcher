@@ -1,5 +1,6 @@
 use regex::Regex;
 use serde::{Deserialize, Deserializer};
+use std::slice;
 
 #[derive(Clone)]
 pub struct Greeting {
@@ -10,101 +11,79 @@ pub struct Greeting {
 
 impl Greeting {
     #[inline]
-    pub fn passthru(&self) -> bool {
-        self.passthru
-    }
-
-    #[inline]
     pub fn message(&self, nick: &str) -> String {
         self.message.replace("{nick}", nick)
     }
 
     #[inline]
     pub fn is_valid(&self, nick: &str) -> bool {
-        match self.filter {
-            None => true,
-            Some(ref pattern) => pattern.is_match(nick),
+        self.filter.as_ref().map(|p| p.is_match(nick)).unwrap_or(true)
+    }
+}
+
+pub struct GreetingsForUser<'a>
+{
+    user: &'a str,
+    greetings: slice::Iter<'a, Greeting>,
+    take: bool,
+}
+
+impl<'a> Iterator for GreetingsForUser<'a> {
+    type Item = &'a Greeting;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.take { return None; }
+
+        loop {
+            match self.greetings.next() {
+                None => return None,
+
+                Some(greeting) if greeting.is_valid(self.user) => {
+                    self.take = greeting.passthru;
+                    return Some(greeting);
+                }
+
+                _ => (),
+            }
         }
     }
 }
 
-// This decoding implementation took forever to come up with, and I only achieved this by the
-// assistance of Shepmaster from the Rust reddit. The main thing that threw me off was that I
-// couldn't figure out how to do this `read_struct_field` nonsense, and he was instrumental in
-// assisting me with what I have here. He also provided an alternate solution, however, in the
-// form of a better implementation for the internal struct that I tried earlier: you deserialize
-// to something like this:
-//
-// #[derive(RustcDecodable)]
-// pub struct GreetingCore {
-//     passthru: bool,
-//     filter: Option<String>, // filter is optional
-//     message: String,
-// }
-//
-// ...and then you use that value as the basis for your `Decodable` implementation for the real
-// struct, like this:
-//
-// impl Decodable for Greeting {
-//     fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
-//         let core = try!(GreetingCore::decode(d));
-//
-//         Ok(Greeting {
-//             passthru: core.passthru,
-//             filter: core.filter.and_then(|f| Regex::new(&f).ok()),
-//             message: core.message,
-//         })
-//     }
-// }
-//
-// I like this way of doing things, absolutely--I just want to make sure that I learn to do it
-// both ways, so I'm implementing it the hard way in my actual program (...well, it's not *that*
-// hard, is it?), but I'm making this comment. Hopefully I can internalize all this. :)
-//
-// Ok, upon further examination of the circumstances, it does look like the easiest way to make
-// the filter *genuinely* optional is to actually go with the core struct approach, so I'm going
-// to preserve the original code for posterity and then the stuff I have above in the comment will
-// be the actual implementation. :p
+pub trait Greetings<'a> {
+    fn for_user(&'a self, user: &'a str) -> GreetingsForUser<'a>;
+}
 
-// Original code:
-// impl Decodable for Greeting {
-//     fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
-//         Ok(Greeting {
-//             passthru: try!(d.read_struct_field("passthru", 0, |d| d.read_bool())),
-//             filter: try!(build_filter(d.read_struct_field("filter", 0, |d| d.read_str()))),
-//             message: try!(d.read_struct_field("message", 0, |d| d.read_str())),
-//         })
-//     }
-// }
-//
-// fn build_filter<T>(s: Result<String, T>) -> Result<Option<Regex>, T> {
-//     match s {
-//         Err(error) => Err(error),
-//         Ok(s) => Ok(Regex::new(&s).ok()),
-//     }
-// }
+impl<'a> Greetings<'a> for Vec<Greeting> {
+    fn for_user(&'a self, user: &'a str) -> GreetingsForUser<'a> {
+        GreetingsForUser {
+            user: user,
+            greetings: self.iter(),
+            take: true,
+        }
+    }
+}
 
 impl Deserialize for Greeting {
     fn deserialize<D: Deserializer>(d: &mut D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
-        struct Inner {
+        struct Template {
             passthru: bool,
             filter: Option<String>,
             message: String,
         }
 
-        let inner = Inner::deserialize(d)?;
+        let template = Template::deserialize(d)?;
         Ok(Greeting {
-            passthru: inner.passthru,
-            filter: inner.filter.and_then(|f| Regex::new(&f).ok()),
-            message: inner.message,
+            passthru: template.passthru,
+            filter: template.filter.and_then(|f| Regex::new(&f).ok()),
+            message: template.message,
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Greeting;
+    use super::{Greeting, Greetings};
     use regex::Regex;
 
     #[test]
@@ -115,6 +94,21 @@ mod tests {
     #[test]
     fn message_value() {
         assert_eq!("Hello, John!", greeting().message("John"));
+    }
+
+    #[test]
+    fn iterator_handles_filter_and_passthru_correctly() {
+        let greetings = vec![Greeting {
+            passthru: false,
+            filter: Regex::new("Jack").ok(),
+            message: "Hit the road, Jack.".to_owned(),
+        }, greeting(), greeting(), Greeting {
+            passthru: false,
+            filter: None,
+            message: "Hello, {nick}!".to_owned(),
+        }, greeting()];
+
+        assert_eq!(3, greetings.for_user("John").count());
     }
 
     fn greeting() -> Greeting {
