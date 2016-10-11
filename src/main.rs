@@ -1,6 +1,6 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(custom_derive, proc_macro, question_mark, slice_patterns)]
+#![feature(conservative_impl_trait, custom_derive, proc_macro, question_mark, slice_patterns)]
 
 #[macro_use]
 extern crate serde_derive;

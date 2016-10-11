@@ -18,6 +18,7 @@ pub enum Command {
     // admin options
     SetTopic(String),
     SetGreeting(String),
+    ListMessages,
     Kill,
 }
 
@@ -44,6 +45,7 @@ impl FromStr for Command {
             // admin options
             [".topic", _..] => Ok(Command::SetTopic(s.replace(".topic ", ""))),
             [".greet", _..] => Ok(Command::SetGreeting(s.replace(".greet ", ""))),
+            [".listmessages"] | [".messages"] => Ok(Command::ListMessages),
             [".kill"] => Ok(Command::Kill),
 
             _ => Err(()),

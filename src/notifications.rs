@@ -56,6 +56,10 @@ impl<T: NotificationSink> NotificationService<T> {
             .insert(nick.to_owned(), Instant::now())
             .map_or(true, |last| last.elapsed() > frequency)
     }
+
+    pub fn sent<'a>(&'a self) -> impl Iterator<Item = (&'a String, &'a Instant)> {
+        self.sent.iter()
+    }
 }
 
 impl NotificationSink for Sms {
