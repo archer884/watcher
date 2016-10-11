@@ -10,7 +10,7 @@ use std::fs::{File, OpenOptions};
 use std::io::Error as IoError;
 use std::io::Write;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub type IrcHndl = Arc<Irc>;
 pub type ChnHndl = Arc<Channel>;
@@ -72,6 +72,7 @@ impl Watcher {
                     commands::set_topic(self, irc, channel, topic)
                 }
                 Command::SetGreeting(ref greeting) => (), // In theory, this will be used to set the greeting the bot uses for people who enter its channel
+                Command::ListMessages => list_notifications(self.messaging.sent()),
                 Command::Kill => (), // irc.close().ok() // this was used to kill the IRC connection, but that results in Bad Things(TM)
 
                 _ => (), // probably an unauthorized command
@@ -154,4 +155,10 @@ fn create_notification_service(config: &Config) -> NotificationService<Sms> {
                                       &*config.twilio.number),
                              &*config.twilio.recipient,
                              Duration::from_secs(config.bot.message_frequency))
+}
+
+fn list_notifications<'a, T: Iterator<Item = (&'a String, &'a Instant)> + 'a>(notifications: T) {
+    for subject in notifications {
+        println!("{:?}", subject);
+    }
 }
