@@ -81,23 +81,19 @@ impl Watcher {
     }
 
     fn greet_user(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
-        let mut take = true;
-        let greetings = self.channels.get(channel.name()).map(|channel| {
-            let user = user.clone();
-            channel.greetings
-                .iter()
-                .filter(move |greeting| greeting.is_valid(&user.nickname()))
-                .take_while(move |greeting| {
-                    let ret = take;
-                    take = greeting.passthru();
-                    ret
-                })
-        });
+        use greetings::Greetings;
 
-        if let Some(greetings) = greetings {
-            for greeting in greetings {
-                irc.privmsg(channel.name(), &greeting.message(&user.nickname())).ok();
-            }
+        let nick = user.nickname();
+
+        // The idea here is that there are zero or one "channels" matching the channel key we are 
+        // searching for--not that we will get more than one "channels" as a result of calling "get"
+        // on this key. The use of flat_map here basically just avoids some measure of rightward
+        // drift since we don't have to deal with the option value which would otherwise result.
+        let channels = self.channels.get(channel.name());
+        let greetings = channels.iter().flat_map(|channel| channel.greetings.for_user(&nick));
+        
+        for greeting in greetings {
+            irc.privmsg(channel.name(), &greeting.message(&user.nickname())).ok();
         }
     }
 
