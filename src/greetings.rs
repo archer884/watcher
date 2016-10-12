@@ -73,9 +73,16 @@ impl Deserialize for Greeting {
         }
 
         let template = Template::deserialize(d)?;
+        let filter = match template.filter {
+            None => None,
+
+            // Our friendly bot should refuse to start if your message filters are invalid
+            Some(ref filter) => Some(Regex::new(filter).expect(&format!("bad greeting filter: {}", filter))),
+        };
+
         Ok(Greeting {
             passthru: template.passthru,
-            filter: template.filter.and_then(|f| Regex::new(&f).ok()),
+            filter: filter,
             message: template.message,
         })
     }
