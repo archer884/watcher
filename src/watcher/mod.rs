@@ -120,14 +120,11 @@ impl Watcher {
     }
 
     fn open_log(&self, channel: &str) -> Result<File, IoError> {
-        use time;
+        use chrono::UTC;
 
         // I was going to write a test for this unwrap call, but, honestly, I figure everyone
         // and their dog knows that this particular format specifier is fine...
-        let path = format!("{}/{}",
-                           self.log_path,
-                           time::strftime("%F", &time::now()).unwrap() + "_" +
-                           channel.trim_left_matches('#') + ".log");
+        let path = format!("{}/{}_{}.log", self.log_path, UTC::now().format("%F"), channel.trim_left_matches('#'));
         OpenOptions::new().write(true).create(true).append(true).open(&path)
     }
 

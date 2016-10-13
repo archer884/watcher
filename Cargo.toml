@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["J/A <archer884@gmail.com>"]
 
 [dependencies]
+chrono = "*"
 clippy = {version = "*", optional = true}
 dice = {git = "https://github.com/archer884/dice.git"}
 fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git", default-features = false}
@@ -14,7 +15,6 @@ regex = "*"
 rsilio = {git = "https://github.com/archer884/rsilio.git", default-features = false}
 serde = "*"
 serde_derive = "*"
-time = "*"
 toml = {version = "*", default-features = false, features = ["serde"]}
 
 [dependencies.hiirc]
