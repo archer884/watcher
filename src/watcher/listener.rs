@@ -89,7 +89,8 @@ impl Listener for Watcher {
     }
 
     fn reconnect(&mut self, _: IrcHndl) {
-        // no idea what this needs to do here
+        use chrono::UTC;
+        println!("reconnect occurred: {}", UTC::now().format("%F %T"));
     }
 
     fn welcome(&mut self, irc: IrcHndl) {

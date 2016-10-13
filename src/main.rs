@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate serde_derive;
 
+extern crate chrono;
 extern crate dice;
 extern crate fortune_cookie;
 extern crate hiirc;
@@ -14,7 +15,6 @@ extern crate rand;
 extern crate regex;
 extern crate rsilio;
 extern crate serde;
-extern crate time;
 extern crate toml;
 
 mod command;
