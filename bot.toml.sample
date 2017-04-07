@@ -1,15 +1,16 @@
 [server]
 address = "localhost:1145"
+channel = "#channel-name"
 
-[[server.channels]]
-name = "#channel-name"
-admin = true
-log_chat = true
-topic = "topic here"
-greetings = [
-    { passthru = true, filter = "John.*", message = "Hi, John!" },
-    { passthru = false, filter = ".*", message = "Welcome to the channel!" },
-]
+[[server.greetings]]
+passthru = true
+filter = "John.*"
+message = "Hi, John!"
+
+[[server.greetings]]
+passthru = false
+filter = ".*"
+message = "Welcome to the channel!"
 
 [user]
 nick = "watcher"

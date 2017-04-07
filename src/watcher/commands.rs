@@ -1,102 +1,85 @@
-use config::ServerChannel;
 use dice::Dice;
 use fortune_cookie;
-use hiirc::IrcWrite;
 use icndb::next as get_awesome;
-use std::thread;
-use watcher::{ChnHndl, IrcHndl, UsrHndl, Watcher};
+use watcher::Watcher;
+use eirsee::message::OutgoingMessage;
 
 const DEFAULT_CHUCK: &'static str = "No one really knows Chuck Norris. Not even Chuck Norris!";
 const DEFAULT_COOKIE: &'static str = "Man who run in front of car get tired. Man who run behind \
                                       car get exhausted.";
 const DEFAULT_QUOTE: &'static str = "Talk low, talk slow, and don't say too much. -John Wayne";
 
-pub fn chuck(irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
-    println!("{} has requested some CHUCK ACTION!", user.nickname());
-    thread::spawn(move || {
-        match get_awesome() {
-            None => irc.privmsg(channel.name(), DEFAULT_CHUCK),
-            Some(res) => irc.privmsg(channel.name(), &res.joke),
-        }
-        .ok();
-    });
+pub fn chuck(sender: String) -> Option<OutgoingMessage> {
+    println!("{} has requested some CHUCK ACTION!", sender);
+    Some(
+        get_awesome()
+            .map(|res| OutgoingMessage::to_channel(res.joke))
+            .unwrap_or_else(|| OutgoingMessage::to_channel(String::from(DEFAULT_CHUCK)))
+    )
 }
 
-pub fn cookie(irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
-    println!("{} has requested a FORTUNE COOKIE", *user.nickname());
-    thread::spawn(move || {
-        match fortune_cookie::cookie().ok() {
-            None => irc.privmsg(channel.name(), DEFAULT_COOKIE),
-            Some(res) => irc.privmsg(channel.name(), &res),
-        }
-        .ok();
-    });
+pub fn cookie(sender: String) -> Option<OutgoingMessage> {
+    println!("{} has requested a FORTUNE COOKIE", sender);
+    Some(
+        fortune_cookie::cookie().ok()
+            .map(|res| OutgoingMessage::to_channel(res))
+            .unwrap_or_else(|| OutgoingMessage::to_channel(String::from(DEFAULT_COOKIE)))
+    )
 }
 
-pub fn quote(irc: IrcHndl, channel: ChnHndl, user: UsrHndl, category: Option<String>) {
+pub fn quote(sender: String, category: Option<String>) -> Option<OutgoingMessage> {
     use quote_rs::Service;
-    
-    println!("{} has requested a QUOTE", *user.nickname());
-    thread::spawn(move || {
-        let service = Service::new();
-        let quote = match category {
-            None => service.qod(),
-            Some(ref category) => service.qod_for_category(category),
-        };
 
-        match quote {
-            Err(_) => irc.privmsg(channel.name(), DEFAULT_QUOTE),
-            Ok(quote) => irc.privmsg(channel.name(), &format!("{} -{}", quote.quote, quote.author)),
-        }.ok()
-    });
+    println!("{} has requested a QUOTE", sender);
+
+    let service = Service::new();
+    let quote = match category {
+        None => service.qod(),
+        Some(ref category) => service.qod_for_category(category),
+    };
+
+    Some(
+        quote.ok()
+            .map(|res| OutgoingMessage::to_channel(format!("{} -{}", res.quote, res.author)))
+            .unwrap_or_else(|| OutgoingMessage::to_channel(String::from(DEFAULT_QUOTE)))
+    )
 }
 
-pub fn roll(irc: IrcHndl, channel: ChnHndl, user: UsrHndl, dice: Vec<Dice>) {
+pub fn roll(sender: String, dice: Vec<Dice>) -> Option<OutgoingMessage> {
     use rand;
 
-    println!("{} has requested DICE ROLLS: {:?}", *user.nickname(), dice);
-    thread::spawn(move || {
-        let mut rng = rand::thread_rng();
-        let results: Vec<u32> = dice.iter().flat_map(|roll| roll.gen_result(&mut rng)).collect();
-        let formatted_results = format_dice_results(&results);
+    println!("{} has requested DICE ROLLS: {:?}", sender, dice);
 
-        irc.privmsg(channel.name(),
-                     &format!("{} rolled {} ({})",
-                              *user.nickname(),
-                              formatted_results,
-                              results.iter().sum::<u32>()))
-            .ok();
-    });
+    let mut rng = rand::thread_rng();
+    let results: Vec<u32> = dice.iter().flat_map(|roll| roll.gen_result(&mut rng)).collect();
+    let formatted_results = format_dice_results(&results);
+
+    Some(OutgoingMessage::to_channel(
+        format!("{} rolled {} ({})", sender, formatted_results, results.iter().sum::<u32>())
+    ))
 }
 
-pub fn set_nick(watcher: &mut Watcher, irc: IrcHndl, nick: &str) {
-    if irc.nick(nick).is_ok() {
-        watcher.identity.nick = nick.to_owned();
-    }
+pub fn set_nick(watcher: &Watcher, sender: String, nick: String) -> Option<OutgoingMessage> {
+    // Sorry; eirsee just doesn't support changing the bot's nickname at the moment. Note: when we 
+    // do get around to implementing this, we need to check *right here* to see if the user requesting
+    // the nick change is an administrator or not.
+    //
+    // Alternatively, I could just implement admin-only commands completely separately from normal
+    // commands, or send admin commands through a totally different match/dispatch code block, either
+    // of which honestly seems like a better idea in practice.
+    unimplemented!()
 }
 
-pub fn set_debug(watcher: &mut Watcher, enabled: bool) {
-    watcher.debug = enabled;
-    println!("debug mode {}",
-             if enabled { "enabled" } else { "disabled" });
-}
+// FIXME: Admin commands like this one need a totally separate path, because checking this here is some 
+// total bullshit.
+pub fn set_debug(watcher: &Watcher, sender: String, enabled: bool) -> Option<OutgoingMessage> {
+    if watcher.is_admin(&sender) {
+        watcher.debug.set(enabled);
+        println!("debug mode {}", if enabled { "enabled" } else { "disabled" });
 
-pub fn join_channel(watcher: &mut Watcher, irc: IrcHndl, channel: &str) {
-    if !watcher.channels.contains_key(channel) && irc.join(channel, None).is_ok() {
-        watcher.channels.insert(channel.to_owned(),
-                                ServerChannel {
-                                    name: channel.to_owned(),
-                                    topic: None,
-                                    admin: false,
-                                    log_chat: true,
-                                    greetings: vec![],
-                                });
-    }
-}
-
-pub fn leave_channel(watcher: &mut Watcher, irc: IrcHndl, channel: &str) {
-    if watcher.channels.contains_key(channel) && irc.part(channel, None).is_ok() {
-        watcher.channels.remove(channel);
+        Some(OutgoingMessage::to_private(sender, format!("debug mode set to {}", enabled)))
+    } else {
+        None
     }
 }
 
@@ -104,12 +87,11 @@ pub fn leave_channel(watcher: &mut Watcher, irc: IrcHndl, channel: &str) {
 // the idea is that we'll be storing the topic string as part of the ServerChannel object in
 // our list of channels, so, for the future, I'm leaving the Watcher object as part of this
 // function signature.
-#[allow(unused)]
-pub fn set_topic(watcher: &mut Watcher, irc: IrcHndl, channel: ChnHndl, topic: &str) {
-    match irc.set_topic(channel.name(), topic) {
-        Err(e) => println!("{:?}", e),
-        Ok(_) => println!("{}: {}", channel.name(), topic),
-    }
+//
+// Also, see FIXME note in handle_command for what needs to happen here.
+pub fn set_topic(_watcher: &Watcher, sender: String, topic: String) -> Option<OutgoingMessage> {
+    // Again, sorry, this feature is not yet provided.
+    unimplemented!()
 }
 
 fn format_dice_results(values: &[u32]) -> String {

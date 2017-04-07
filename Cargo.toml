@@ -17,9 +17,9 @@ serde = "*"
 serde_derive = "*"
 toml = {version = "*", default-features = false, features = ["serde"]}
 
-[dependencies.hiirc]
-git = "https://github.com/sbstp/hiirc.git"
+[dependencies.eirsee]
+path = "../eirsee"
 
 [features]
-default = ["ssl"]
-ssl = ["fortune-cookie/ssl", "icndb/ssl"]
+default = []
+ssl = ["icndb/ssl"]

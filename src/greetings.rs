@@ -64,7 +64,7 @@ impl<'a> Greetings<'a> for Vec<Greeting> {
 }
 
 impl Deserialize for Greeting {
-    fn deserialize<D: Deserializer>(d: &mut D) -> Result<Self, D::Error> {
+    fn deserialize<D: Deserializer>(d: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
         struct Template {
             passthru: bool,

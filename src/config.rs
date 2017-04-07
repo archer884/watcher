@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::fs::File;
 use std::fs;
 use std::io::Read;
-use toml::{decode, Value};
+use toml::{self, Value};
 
 #[derive(Deserialize)]
 pub struct Bot {
@@ -12,18 +12,10 @@ pub struct Bot {
     pub watch_list: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Server {
     pub address: String,
-    pub channels: Vec<ServerChannel>,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct ServerChannel {
-    pub name: String,
-    pub admin: bool,
-    pub log_chat: bool,
-    pub topic: Option<String>,
+    pub channel: String,
     pub greetings: Vec<Greeting>,
 }
 
@@ -42,7 +34,7 @@ pub struct User {
     pub real: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Logging {
     pub path: String,
 }
@@ -52,7 +44,7 @@ pub struct Config {
     pub server: Server,
     pub user: User,
     pub twilio: Twilio,
-    pub logging: Logging,
+    pub logging: Option<Logging>,
 }
 
 #[derive(Debug)]
@@ -74,19 +66,26 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
                 buf
             };
 
-            let table: Value = try!(data.parse()
-                .map_err(|e| ConfigError::Unreadable(format!("{:?}", e))));
+            let table: Value = data.parse()
+                .map_err(|e| ConfigError::Unreadable(format!("{:?}", e)))?;
 
-            let logging = try!(decode_section("logging", &table));
-            if let Err(message) = validate_logging(&logging) {
-                return Err(ConfigError::InvalidLoggingConfig(message));
-            }
+            let logging = match decode_section("logging", &table) {
+                Err(ConfigError::MissingElement(_)) => None,
+                Err(e) => return Err(e),
+                Ok(logging) => {
+                    if let Err(message) = validate_logging(&logging) {
+                        return Err(ConfigError::InvalidLoggingConfig(message))
+                    } else {
+                        Some(logging)
+                    }
+                }
+            };
 
             Ok(Config {
-                bot: try!(decode_section("bot", &table)),
-                server: try!(decode_section("server", &table)),
-                user: try!(decode_section("user", &table)),
-                twilio: try!(decode_section("twilio", &table)),
+                bot: decode_section("bot", &table)?,
+                server: decode_section("server", &table)?,
+                user: decode_section("user", &table)?,
+                twilio: decode_section("twilio", &table)?,
                 logging: logging,
             })
         }
@@ -101,12 +100,12 @@ fn validate_logging(logging: &Logging) -> Result<(), String> {
 }
 
 fn decode_section<T: Deserialize>(name: &str, table: &Value) -> Result<T, ConfigError> {
-    match table.lookup(name) {
+    match table.get(name) {
         None => Err(ConfigError::MissingElement(name.to_owned())),
         Some(value) => {
-            decode(value.clone()).ok_or_else(|| {
-                ConfigError::BadElement(format!("unable to decode {:?} :: {:?}", name, table))
-            })
+            value.as_str()
+                .and_then(|s| toml::from_str(s).ok())
+                .ok_or(ConfigError::BadElement(format!("unable to decode {:?} :: {:?}", name, table)))
         }
     }
 }

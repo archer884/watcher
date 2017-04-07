@@ -31,8 +31,6 @@ pub trait NotificationSink {
     fn send_message(&self, recipient: &str, message: &str) -> NotificationResult;
 }
 
-// The idea here is that a notification service wraps any two notification mechanisms, which
-// represent, respectively, SMS or email sinks.
 pub struct NotificationService<T: NotificationSink> {
     sink: T,
     sent: HashMap<String, Instant>,
@@ -55,7 +53,7 @@ impl<T: NotificationSink> NotificationService<T> {
         }
     }
 
-    /// Notifies the user that a watched nick has entered a watched channel
+    /// Notify the user that a watched nick has entered a watched channel.
     pub fn notify_channel(&mut self, nick: &str, channel: &str) -> NotificationResult {
         match self.can_send(nick) {
             Err(e) => Err(e),
@@ -63,7 +61,7 @@ impl<T: NotificationSink> NotificationService<T> {
         }
     }
 
-    /// Notifies the user that the bot has recieved a private message
+    /// Notify the user that the bot has recieved a private message.
     pub fn notify_pm(&mut self, nick: &str, message: &str) -> NotificationResult {
         match self.can_send(nick) {
             Err(e) => Err(e),

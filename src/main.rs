@@ -1,14 +1,12 @@
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(conservative_impl_trait, custom_derive, proc_macro, question_mark, slice_patterns)]
+#![feature(conservative_impl_trait, custom_derive, proc_macro, slice_patterns)]
 
 #[macro_use]
 extern crate serde_derive;
 
 extern crate chrono;
 extern crate dice;
+extern crate eirsee;
 extern crate fortune_cookie;
-extern crate hiirc;
 extern crate icndb;
 extern crate quote_rs;
 extern crate rand;
@@ -24,31 +22,32 @@ mod notifications;
 mod watcher;
 
 use config::Config;
-use hiirc::{ReconnectionSettings, Settings};
-use std::time::Duration;
+use eirsee::message::OutgoingMessage;
+use std::sync::mpsc;
 use watcher::Watcher;
 
 fn main() {
+    use std::io::BufRead;
+
     match config::read_config(&std::env::args().nth(1).unwrap_or("bot.toml".to_owned())) {
         Err(e) => panic!("{:?}", e),
         Ok(ref config) => {
-            match run_bot(config) {
-                Ok(_) => println!("Running..."),
-                Err(e) => println!("{:?}", e),
+            let handle = run_bot(config);
+            let stdin = std::io::stdin();
+
+            for mut line in stdin.lock().lines().filter_map(|s| s.ok()) {
+                match line.pop() {
+                    Some('#') => handle.send(OutgoingMessage::ChannelMessage { content: line }).unwrap(),
+                    Some('r') => handle.send(OutgoingMessage::Raw(line)).unwrap(),
+
+                    _ => (), // wtf who cares.
+                }
             }
         }
     }
 }
 
-fn run_bot(config: &Config) -> Result<(), hiirc::Error> {
-    Settings::new(&config.server.address, &config.user.nick)
-        .username(&config.user.user)
-        .realname(&config.user.real)
-        .reconnection(ReconnectionSettings::Reconnect {
-            max_attempts: 5,
-            delay_between_attempts: Duration::from_secs(5),
-            delay_after_disconnect: Duration::from_secs(15),
-        })
-        .auto_ping(true)
-        .dispatch(Watcher::from_config(config))
+fn run_bot(config: &Config) -> mpsc::Sender<OutgoingMessage> {
+    use eirsee::core::Core;
+    Core::new(Watcher::from_config(config)).connect(&config.server.address)
 }
