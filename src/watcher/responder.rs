@@ -83,27 +83,6 @@ impl Responder for Watcher {
     }
 }
 
-// impl Listener for Watcher {
-//     fn reconnect(&mut self, _: IrcHndl) {
-//         use chrono::UTC;
-//         println!("reconnect occurred: {}", UTC::now().format("%F %T"));
-//     }
-
-//     fn welcome(&mut self, irc: IrcHndl) {
-//         for channel in self.channels.values() {
-//             irc.join(&channel.name, None).ok();
-//             if channel.admin {
-//                 if let Some(ref topic) = channel.topic {
-//                     match irc.set_topic(&channel.name, topic) {
-//                         Err(e) => println!("{:?}", e),
-//                         Ok(_) => println!("topic set for {}: {}", channel.name, topic),
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
-
 fn log_message_result(message_result: &NotificationResult) {
     match *message_result {
         Ok(()) => println!("notification sent"),
