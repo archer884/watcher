@@ -37,6 +37,12 @@ fn main() {
 
             for mut line in stdin.lock().lines().filter_map(|s| s.ok()) {
                 match line.pop() {
+
+                    // To be clear, what happens here is that just forwarding messages from console
+                    // input. Lines beginning with `#` are sent as channel messages, while lines
+                    // beginning with `r` are sent as raw IRC messages. Note: if you add a space
+                    // after the format specifier `(#|r)`, that space will be included in the
+                    // message as sent.
                     Some('#') => handle.send(OutgoingMessage::ChannelMessage { content: line }).unwrap(),
                     Some('r') => handle.send(OutgoingMessage::Raw(line)).unwrap(),
 
