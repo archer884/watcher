@@ -5,18 +5,34 @@ pub use rsilio::MessagingService as Sms;
 
 pub type NotificationResult = Result<(), NotificationFailure>;
 
+trait InWindow {
+    fn in_window(&self, window: &ThrottleWindow) -> bool;
+}
+
+impl InWindow for Instant {
+    fn in_window(&self, window: &ThrottleWindow) -> bool {
+        self.elapsed() < window.period
+    }
+}
+
+impl<'a> InWindow for &'a Instant {
+    fn in_window(&self, window: &ThrottleWindow) -> bool {
+        self.elapsed() < window.period
+    }
+}
+
 struct ThrottleWindow {
     pub period: Duration,
     pub max_count: usize,
 }
 
 impl ThrottleWindow {
-    fn can_send<T: Iterator<Item=Instant>>(&self, items: T) -> bool {
-        items.filter(|&item| self.in_window(item)).count() < self.max_count
-    }
-
-    fn in_window(&self, time: Instant) -> bool {
-        time.elapsed() < self.period
+    fn can_send<T, I>(&self, items: I) -> bool 
+        where
+            T: InWindow,
+            I: IntoIterator<Item=T>,
+    {
+        items.into_iter().filter(|item| item.in_window(self)).count() < self.max_count
     }
 }
 
@@ -102,39 +118,39 @@ impl NotificationSink for Sms {
 
 #[cfg(test)]
 mod tests {
+    use notifications::ThrottleWindow;
     use std::time::{Duration, Instant};
-    use super::ThrottleWindow;
 
     #[test]
     fn messages_allowed_when_threshold_not_passed() {
-        let items = vec![Instant::now(), Instant::now(), Instant::now()];
+        let items = &[Instant::now(), Instant::now(), Instant::now(), Instant::now()];
         let window = ThrottleWindow {
             period: Duration::from_secs(60),
             max_count: 5,            
         };
 
-        assert!(window.can_send(items.iter().cloned()));
+        assert!(window.can_send(items));
     }
 
     #[test]
     fn messages_withheld_when_threshold_passed() {
-        let items = vec![Instant::now(), Instant::now(), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
+        let items = &[Instant::now(), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
         let window = ThrottleWindow {
             period: Duration::from_secs(60),
             max_count: 5,            
         };
 
-        assert!(!window.can_send(items.iter().cloned()));
+        assert!(!window.can_send(items));
     }
 
     #[test]
     fn old_messages_do_not_count_against_threshold() {
-        let items = vec![Instant::now() - Duration::from_secs(120), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
+        let items = &[Instant::now() - Duration::from_secs(120), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
         let window = ThrottleWindow {
             period: Duration::from_secs(60),
             max_count: 5,            
         };
 
-        assert!(window.can_send(items.iter().cloned()));
+        assert!(window.can_send(items));
     }
 }
