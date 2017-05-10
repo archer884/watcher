@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
@@ -11,8 +12,12 @@ struct ThrottleWindow {
 }
 
 impl ThrottleWindow {
-    fn can_send<T: Iterator<Item=Instant>>(&self, items: T) -> bool {
-        items.filter(|&item| self.in_window(item)).count() < self.max_count
+    fn can_send<T, I>(&self, items: I) -> bool 
+        where
+            T: Borrow<Instant>,
+            I: IntoIterator<Item=T>,
+    {
+        items.into_iter().filter(|item| self.in_window(*item.borrow())).count() < self.max_count
     }
 
     fn in_window(&self, time: Instant) -> bool {
@@ -31,8 +36,6 @@ pub trait NotificationSink {
     fn send_message(&self, recipient: &str, message: &str) -> NotificationResult;
 }
 
-// The idea here is that a notification service wraps any two notification mechanisms, which
-// represent, respectively, SMS or email sinks.
 pub struct NotificationService<T: NotificationSink> {
     sink: T,
     sent: HashMap<String, Instant>,
@@ -55,7 +58,7 @@ impl<T: NotificationSink> NotificationService<T> {
         }
     }
 
-    /// Notifies the user that a watched nick has entered a watched channel
+    /// Notify the user that a watched nick has entered a watched channel.
     pub fn notify_channel(&mut self, nick: &str, channel: &str) -> NotificationResult {
         match self.can_send(nick) {
             Err(e) => Err(e),
@@ -63,7 +66,7 @@ impl<T: NotificationSink> NotificationService<T> {
         }
     }
 
-    /// Notifies the user that the bot has recieved a private message
+    /// Notify the user that the bot has recieved a private message.
     pub fn notify_pm(&mut self, nick: &str, message: &str) -> NotificationResult {
         match self.can_send(nick) {
             Err(e) => Err(e),
@@ -104,39 +107,39 @@ impl NotificationSink for Sms {
 
 #[cfg(test)]
 mod tests {
+    use notifications::ThrottleWindow;
     use std::time::{Duration, Instant};
-    use super::ThrottleWindow;
 
     #[test]
     fn messages_allowed_when_threshold_not_passed() {
-        let items = vec![Instant::now(), Instant::now(), Instant::now()];
+        let items = &[Instant::now(), Instant::now(), Instant::now(), Instant::now()];
         let window = ThrottleWindow {
             period: Duration::from_secs(60),
             max_count: 5,            
         };
 
-        assert!(window.can_send(items.iter().cloned()));
+        assert!(window.can_send(items));
     }
 
     #[test]
     fn messages_withheld_when_threshold_passed() {
-        let items = vec![Instant::now(), Instant::now(), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
+        let items = &[Instant::now(), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
         let window = ThrottleWindow {
             period: Duration::from_secs(60),
             max_count: 5,            
         };
 
-        assert!(!window.can_send(items.iter().cloned()));
+        assert!(!window.can_send(items));
     }
 
     #[test]
     fn old_messages_do_not_count_against_threshold() {
-        let items = vec![Instant::now() - Duration::from_secs(120), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
+        let items = &[Instant::now() - Duration::from_secs(120), Instant::now(), Instant::now(), Instant::now(), Instant::now()];
         let window = ThrottleWindow {
             period: Duration::from_secs(60),
             max_count: 5,            
         };
 
-        assert!(window.can_send(items.iter().cloned()));
+        assert!(window.can_send(items));
     }
 }

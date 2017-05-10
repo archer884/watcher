@@ -1,99 +1,108 @@
 mod commands;
-mod listener;
+mod responder;
 
 use command::Command;
-use config::{Config, ServerChannel, User};
-use hiirc::{Channel, ChannelUser, Irc, IrcWrite};
+use config::{Config, User, Server};
+use eirsee::message::OutgoingMessage;
+use greetings::Greeting;
 use notifications::{NotificationService, Sms};
-use std::collections::{HashMap, HashSet};
+use std::cell::Cell;
+use std::collections::HashSet;
 use std::fs::{File, OpenOptions};
-use std::io::Error as IoError;
-use std::io::Write;
-use std::sync::Arc;
+use std::io::{self, Write};
+use std::sync::RwLock;
 use std::time::{Duration, Instant};
-
-pub type IrcHndl = Arc<Irc>;
-pub type ChnHndl = Arc<Channel>;
-pub type UsrHndl = Arc<ChannelUser>;
 
 pub struct Watcher {
     admin: HashSet<String>,
     identity: User,
-    channels: HashMap<String, ServerChannel>,
+    server: Server,
+    greetings: Vec<Greeting>,
     watch_list: HashSet<String>,
-    messaging: NotificationService<Sms>,
-    log_path: String,
-    debug: bool,
+    messaging: RwLock<NotificationService<Sms>>,
+    log_path: Option<String>,
+    admin_mode: bool,
+    debug: Cell<bool>,
 }
 
 impl Watcher {
-    pub fn from_config(config: &Config) -> Watcher {
+    pub fn with_config(config: &Config) -> Watcher {
         Watcher {
             admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
-            channels: config.server.channels.iter().cloned()
-                .map(|channel| (channel.name.to_owned(), channel))
-                .collect(),
+            server: config.server.clone(),
+            greetings: config.server.greetings.clone(),
             watch_list: config.bot.watch_list.iter().cloned().collect(),
-            messaging: create_notification_service(config),
-            log_path: config.logging.path.clone(),
-            debug: true,
+            messaging: RwLock::new(create_notification_service(config)),
+            log_path: config.logging.clone().map(|logging| logging.path),
+            // FIXME: this should be set in the config file somewhere.
+            admin_mode: true,
+            debug: Cell::new(true),
         }
     }
 
     // TODO: change this so that we're not *just* parsing the command, but also validating the
     // user's permissions before we actually get to dispatching the command.
-    fn handle_command(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl, command: &str) {
-        if let Some(command) = command.parse::<Command>().ok() {
-            match command {
-                Command::Chuck => commands::chuck(irc, channel, user),
-                Command::Cookie => commands::cookie(irc, channel, user),
-                Command::Quote(category) => commands::quote(irc, channel, user, category),
-                Command::Roll(dice) => commands::roll(irc, channel, user, dice),
+    fn handle_command(&self, sender: String, channel: String, command: String) -> Option<OutgoingMessage> {
+        match command.parse::<Command>() {
+            Ok(command) => match command {
+                Command::Chuck => commands::chuck(sender),
+                Command::Cookie => commands::cookie(sender),
+                Command::Quote(category) => commands::quote(sender, category),
+                Command::Roll(dice) => commands::roll(sender, dice),
 
+                // FIXME: Admin commands like these need a separate pathway.
                 // Bot settings
-                Command::SetNick(ref new_nick) if self.is_admin(&user.nickname()) => {
-                    commands::set_nick(self, irc, new_nick)
-                }
-                Command::SetDebug(enabled) if self.is_admin(&user.nickname()) => {
-                    commands::set_debug(self, enabled)
-                }
+                Command::SetNick(nick) => commands::set_nick(self, sender, nick),
+                Command::SetDebug(enabled) => commands::set_debug(self, sender, enabled),
+                Command::SetTopic(topic) => commands::set_topic(self, sender, topic),
 
-                // Channel commands
-                Command::JoinChannel(ref channel) if self.is_admin(&user.nickname()) => {
-                    commands::join_channel(self, irc, channel)
-                }
-                Command::LeaveChannel(ref channel) if self.is_admin(&user.nickname()) => {
-                    commands::leave_channel(self, irc, channel)
-                }
+                // FIXME: In theory, we want to use this to add greetings to the bot's repertoire.
+                Command::SetGreeting(ref _greeting) => None,
 
-                // Admin options
-                Command::SetTopic(ref topic) if self.is_admin(&user.nickname()) => {
-                    commands::set_topic(self, irc, channel, topic)
-                }
-                Command::SetGreeting(ref greeting) => (), // In theory, this will be used to set the greeting the bot uses for people who enter its channel
-                Command::ListMessages => list_notifications(self.messaging.sent()),
-                Command::Kill => (), // irc.close().ok() // this was used to kill the IRC connection, but that results in Bad Things(TM)
+                // This one looks odd, but the reason that a lot of these just send back None as their
+                // channel message or whatever is just that they are meant to do work only on the
+                // local machine. This one prints a report of all the messages sent out via SMS; we
+                // really don't care to spew that across the network, do we?
+                Command::ListMessages => {
+                    match self.messaging.read() {
+                        // Still don't think this is actually possible...
+                        Err(_) => panic!("ugh"),
+                        Ok(ref messaging) => list_notifications(messaging.sent()),
+                    }
 
-                _ => (), // probably an unauthorized command
-            }
+                    None
+                },
+
+                // FIXME: This is meant to cause the bot to exit, but so far all attempts to actually *do* this
+                // have resulted in Very(TM) Bad Things(TM) happening as a result. We were initially using
+                // `irc.close().ok()` from hiirc; I think the way to go at this point is just to actually exit
+                // the application and let destructors close the TCP connection to the server.
+                Command::Kill => None, // irc.close().ok()
+
+                _ => None, // probably an unauthorized command
+            },
+
+            _ => None,
         }
     }
 
-    fn greet_user(&mut self, irc: IrcHndl, channel: ChnHndl, user: UsrHndl) {
+    fn greet_user(&self, user: String) -> Option<OutgoingMessage> {
         use greetings::Greetings;
 
-        let nick = user.nickname();
+        let mut greeting = self.greetings.for_user(&user)
+            .fold(String::new(), |mut s, greeting| {
+                s.push_str(&greeting.message(&user));
+                s.push(' ');
+                s
+            });
 
-        // The idea here is that there are zero or one "channels" matching the channel key we are 
-        // searching for--not that we will get more than one "channels" as a result of calling "get"
-        // on this key. The use of flat_map here basically just avoids some measure of rightward
-        // drift since we don't have to deal with the option value which would otherwise result.
-        let channels = self.channels.get(channel.name());
-        let greetings = channels.iter().flat_map(|channel| channel.greetings.for_user(&nick));
-        
-        for greeting in greetings {
-            irc.privmsg(channel.name(), &greeting.message(&user.nickname())).ok();
+        match greeting.len() {
+            0 => None,
+            x => {
+                greeting.truncate(x - 1);
+                Some(OutgoingMessage::to_channel(greeting))
+            }
         }
     }
 
@@ -102,11 +111,9 @@ impl Watcher {
         self.admin.contains(nick)
     }
 
-    fn admin_channel(&self, channel: &str) -> bool {
-        match self.channels.get(channel) {
-            None => false,
-            Some(channel) => channel.admin,
-        }
+    #[inline]
+    fn admin_mode(&self) -> bool {
+        self.admin_mode
     }
 
     #[inline]
@@ -115,25 +122,29 @@ impl Watcher {
     }
 
     #[inline]
-    fn logging(&self, channel: &str) -> bool {
-        self.channels.get(channel).map_or(false, |channel| channel.log_chat)
+    fn logging(&self) -> bool {
+        self.log_path.is_some()
     }
 
-    fn open_log(&self, channel: &str) -> Result<File, IoError> {
+    fn open_log(&self) -> Result<File, io::Error> {
         use chrono::UTC;
 
         // I was going to write a test for this unwrap call, but, honestly, I figure everyone
         // and their dog knows that this particular format specifier is fine...
-        let path = format!("{}/{}_{}.log", self.log_path, UTC::now().format("%F"), channel.trim_left_matches('#'));
+        let path = self.log_path.as_ref().ok_or_else(|| {
+            io::Error::new(io::ErrorKind::Other, "path not provided")
+        })?;
+
+        let path = format!("{}/{}_{}.log", path, UTC::now().format("%F"), self.server.channel.trim_left_matches('#'));
         OpenOptions::new().write(true).create(true).append(true).open(&path)
     }
 
-    fn log(&self, channel: &str, nick: &str, message: &str) {
-        if !self.logging(channel) {
+    fn log(&self, nick: &str, message: &str) {
+        if !self.logging() {
             return;
         }
 
-        match self.open_log(channel) {
+        match self.open_log() {
             Err(e) => println!("{:?}", e),
             Ok(mut file) => {
                 writeln!(file, "{}: {}", nick, message).ok();

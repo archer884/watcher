@@ -5,8 +5,8 @@ authors = ["J/A <archer884@gmail.com>"]
 
 [dependencies]
 chrono = "*"
-clippy = {version = "*", optional = true}
 dice = {git = "https://github.com/archer884/dice.git"}
+eirsee = {git = "https://github.com/archer884/eirsee.git"}
 fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git", default-features = false}
 icndb = {git = "https://github.com/archer884/icndb.git", default-features = false}
 quote-rs = {git = "https://github.com/archer884/quote-rs.git"}
@@ -17,9 +17,6 @@ serde = "*"
 serde_derive = "*"
 toml = {version = "*", default-features = false, features = ["serde"]}
 
-[dependencies.hiirc]
-git = "https://github.com/sbstp/hiirc.git"
-
 [features]
-default = ["ssl"]
-ssl = ["fortune-cookie/ssl", "icndb/ssl"]
+default = []
+ssl = ["icndb/ssl"]
