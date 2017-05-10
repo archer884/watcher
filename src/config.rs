@@ -56,6 +56,10 @@ pub enum ConfigError {
     InvalidLoggingConfig(String), // could not create/access path
 }
 
+// FIXME: all this crap is being cloned basically because I need to rewrite the way we read
+// configuration values. It would be pretty trivial to rewrite this with a template type and 
+// then record a config error for cases where the template type doesn't map correctly to the 
+// real type.
 pub fn read_config(path: &str) -> Result<Config, ConfigError> {
     match File::open(path) {
         Err(_) => Err(ConfigError::Unavailable),
@@ -69,23 +73,22 @@ pub fn read_config(path: &str) -> Result<Config, ConfigError> {
             let table: Value = data.parse()
                 .map_err(|e| ConfigError::Unreadable(format!("{:?}", e)))?;
 
-            let logging = match decode_section("logging", &table) {
+            let logging = match decode_section("logging", table.get("logging").cloned()) {
                 Err(ConfigError::MissingElement(_)) => None,
                 Err(e) => return Err(e),
                 Ok(logging) => {
-                    if let Err(message) = validate_logging(&logging) {
-                        return Err(ConfigError::InvalidLoggingConfig(message))
-                    } else {
-                        Some(logging)
+                    match validate_logging(&logging) {
+                        Ok(_) => Some(logging),
+                        Err(e) => return Err(ConfigError::InvalidLoggingConfig(e)),
                     }
                 }
             };
 
             Ok(Config {
-                bot: decode_section("bot", &table)?,
-                server: decode_section("server", &table)?,
-                user: decode_section("user", &table)?,
-                twilio: decode_section("twilio", &table)?,
+                bot: decode_section("bot", table.get("bot").cloned())?,
+                server: decode_section("server", table.get("server").cloned())?,
+                user: decode_section("user", table.get("user").cloned())?,
+                twilio: decode_section("twilio", table.get("twilio").cloned())?,
                 logging: logging,
             })
         }
@@ -99,13 +102,9 @@ fn validate_logging(logging: &Logging) -> Result<(), String> {
     }
 }
 
-fn decode_section<T: Deserialize>(name: &str, table: &Value) -> Result<T, ConfigError> {
-    match table.get(name) {
-        None => Err(ConfigError::MissingElement(name.to_owned())),
-        Some(value) => {
-            value.as_str()
-                .and_then(|s| toml::from_str(s).ok())
-                .ok_or(ConfigError::BadElement(format!("unable to decode {:?} :: {:?}", name, table)))
-        }
+fn decode_section<'d, T: Deserialize<'d>>(name: &str, value: Option<Value>) -> Result<T, ConfigError> {
+    match value {
+        None => Err(ConfigError::MissingElement(name.to_string())),
+        Some(value) => value.try_into().map_err(|e| ConfigError::BadElement(format!("{}", e))),
     }
 }

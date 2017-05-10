@@ -60,14 +60,11 @@ pub fn roll(sender: String, dice: Vec<Dice>) -> Option<OutgoingMessage> {
 }
 
 pub fn set_nick(watcher: &Watcher, sender: String, nick: String) -> Option<OutgoingMessage> {
-    // Sorry; eirsee just doesn't support changing the bot's nickname at the moment. Note: when we 
-    // do get around to implementing this, we need to check *right here* to see if the user requesting
-    // the nick change is an administrator or not.
-    //
-    // Alternatively, I could just implement admin-only commands completely separately from normal
-    // commands, or send admin commands through a totally different match/dispatch code block, either
-    // of which honestly seems like a better idea in practice.
-    unimplemented!()
+    if watcher.is_admin(&sender) {
+        Some(OutgoingMessage::Nick(Some(nick)))
+    } else {
+        None
+    }
 }
 
 // FIXME: Admin commands like this one need a totally separate path, because checking this here is some 
@@ -89,9 +86,12 @@ pub fn set_debug(watcher: &Watcher, sender: String, enabled: bool) -> Option<Out
 // function signature.
 //
 // Also, see FIXME note in handle_command for what needs to happen here.
-pub fn set_topic(_watcher: &Watcher, sender: String, topic: String) -> Option<OutgoingMessage> {
-    // Again, sorry, this feature is not yet provided.
-    unimplemented!()
+pub fn set_topic(watcher: &Watcher, sender: String, topic: String) -> Option<OutgoingMessage> {
+    if watcher.is_admin(&sender) {
+        Some(OutgoingMessage::Topic(topic))
+    } else {
+        None
+    }
 }
 
 fn format_dice_results(values: &[u32]) -> String {

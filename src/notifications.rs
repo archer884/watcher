@@ -1,25 +1,10 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 pub use rsilio::MessagingService as Sms;
 
 pub type NotificationResult = Result<(), NotificationFailure>;
-
-trait InWindow {
-    fn in_window(&self, window: &ThrottleWindow) -> bool;
-}
-
-impl InWindow for Instant {
-    fn in_window(&self, window: &ThrottleWindow) -> bool {
-        self.elapsed() < window.period
-    }
-}
-
-impl<'a> InWindow for &'a Instant {
-    fn in_window(&self, window: &ThrottleWindow) -> bool {
-        self.elapsed() < window.period
-    }
-}
 
 struct ThrottleWindow {
     pub period: Duration,
@@ -29,10 +14,14 @@ struct ThrottleWindow {
 impl ThrottleWindow {
     fn can_send<T, I>(&self, items: I) -> bool 
         where
-            T: InWindow,
+            T: Borrow<Instant>,
             I: IntoIterator<Item=T>,
     {
-        items.into_iter().filter(|item| item.in_window(self)).count() < self.max_count
+        items.into_iter().filter(|item| self.in_window(*item.borrow())).count() < self.max_count
+    }
+
+    fn in_window(&self, time: Instant) -> bool {
+        time.elapsed() < self.period
     }
 }
 

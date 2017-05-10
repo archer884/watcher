@@ -78,8 +78,9 @@ impl Responder for Watcher {
         self.greet_user(user)
     }
 
-    fn user_part(&self, user: String) -> Option<OutgoingMessage> {
-        unimplemented!()
+    // FIXME: do I care to implement anything here?
+    fn user_part(&self, _user: String) -> Option<OutgoingMessage> {
+        None
     }
 }
 

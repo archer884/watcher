@@ -26,7 +26,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
-    pub fn from_config(config: &Config) -> Watcher {
+    pub fn with_config(config: &Config) -> Watcher {
         Watcher {
             admin: config.bot.admin.iter().cloned().collect(),
             identity: config.user.clone(),
@@ -58,7 +58,7 @@ impl Watcher {
                 Command::SetTopic(topic) => commands::set_topic(self, sender, topic),
 
                 // FIXME: In theory, we want to use this to add greetings to the bot's repertoire.
-                Command::SetGreeting(ref greeting) => None,
+                Command::SetGreeting(ref _greeting) => None,
 
                 // This one looks odd, but the reason that a lot of these just send back None as their
                 // channel message or whatever is just that they are meant to do work only on the

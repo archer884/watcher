@@ -1,11 +1,11 @@
 [server]
-address = "localhost:1145"
-channel = "#channel-name"
+address = "localhost:6667"
+channel = "#hello"
 
 [[server.greetings]]
 passthru = true
-filter = "John.*"
-message = "Hi, John!"
+filter = "boss"
+message = "Hi, boss!"
 
 [[server.greetings]]
 passthru = false
@@ -29,8 +29,8 @@ watch_list = [
 [twilio]
 sid = "<sid here>"
 token = "<token here>"
-number = "<number here>"
-recipients = [{auth = "<auth phrase here>", number = "<number here>"}]
+number = "<outgoing number here>"
+recipient = "<recipient number here>"
 
 [logging]
-path = "/log/dir/here"
+path = "/Path/to/Logs"

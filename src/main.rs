@@ -29,7 +29,7 @@ use watcher::Watcher;
 fn main() {
     use std::io::BufRead;
 
-    match config::read_config(&std::env::args().nth(1).unwrap_or("bot.toml".to_owned())) {
+    match config::read_config(&std::env::args().nth(1).unwrap_or_else(|| String::from("bot.toml"))) {
         Err(e) => panic!("{:?}", e),
         Ok(ref config) => {
             let handle = run_bot(config);
@@ -55,5 +55,13 @@ fn main() {
 
 fn run_bot(config: &Config) -> mpsc::Sender<OutgoingMessage> {
     use eirsee::core::Core;
-    Core::new(Watcher::from_config(config)).connect(&config.server.address)
+    use eirsee::config::Config;
+
+    let core = Core::with_config(Config {
+        user: config.user.nick.clone(),
+        name: config.user.real.clone(),
+        channel: config.server.channel.clone(),
+    });
+
+    core.connect(&config.server.address, Watcher::with_config(config))
 }
