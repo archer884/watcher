@@ -7,16 +7,16 @@ authors = ["J/A <archer884@gmail.com>"]
 chrono = "*"
 dice = {git = "https://github.com/archer884/dice.git"}
 eirsee = {git = "https://github.com/archer884/eirsee.git"}
-fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git", default-features = false}
-icndb = {git = "https://github.com/archer884/icndb.git", default-features = false}
+fortune-cookie = {git = "https://github.com/archer884/fortune-cookie.git"}
+icndb = {git = "https://github.com/archer884/icndb.git"}
 quote-rs = {git = "https://github.com/archer884/quote-rs.git"}
 rand = "*"
 regex = "*"
-rsilio = {git = "https://github.com/archer884/rsilio.git", default-features = false}
+rsilio = {git = "https://github.com/archer884/rsilio.git"}
 serde = "*"
 serde_derive = "*"
 toml = {version = "*", default-features = false, features = ["serde"]}
 
 [features]
-default = []
+default = ["ssl"]
 ssl = ["icndb/ssl"]
