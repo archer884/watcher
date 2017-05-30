@@ -6,6 +6,7 @@ pub enum Command {
     Cookie,
     ListCommands,
     Quote(Option<String>),
+    QuoteCategories,
     Roll(Vec<Dice>),
 
     // bot options

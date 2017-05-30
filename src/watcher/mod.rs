@@ -50,6 +50,7 @@ impl Watcher {
                 Command::Cookie => commands::cookie(sender),
                 Command::ListCommands => commands::list_commands(),
                 Command::Quote(category) => commands::quote(sender, category),
+                Command::QuoteCategories => commands::list_quote_categories(),
                 Command::Roll(dice) => commands::roll(sender, dice),
 
                 // FIXME: Admin commands like these need a separate pathway.

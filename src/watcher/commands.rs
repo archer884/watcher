@@ -51,6 +51,10 @@ pub fn quote(sender: String, category: Option<String>) -> Option<OutgoingMessage
     )
 }
 
+pub fn list_quote_categories() -> Option<OutgoingMessage> {
+    Some(OutgoingMessage::const_to_channel("inspire, management, sports, life, funny, love, art, students"))
+}
+
 pub fn roll(sender: String, dice: Vec<Dice>) -> Option<OutgoingMessage> {
     use rand;
 
