@@ -27,6 +27,12 @@ pub fn cookie(sender: String) -> Option<OutgoingMessage> {
     )
 }
 
+pub fn list_commands() -> Option<OutgoingMessage> {
+    Some(OutgoingMessage::ChannelMessage {
+        content: String::from(".chuck .cookie .quote .quote <category> .roll <1d6>")
+    })
+}
+
 pub fn quote(sender: String, category: Option<String>) -> Option<OutgoingMessage> {
     use quote_rs::Service;
 
