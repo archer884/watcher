@@ -4,6 +4,7 @@ use std::str::FromStr;
 pub enum Command {
     Chuck,
     Cookie,
+    ListCommands,
     Quote(Option<String>),
     Roll(Vec<Dice>),
 
@@ -32,6 +33,7 @@ impl FromStr for Command {
             [".cookie"] => Ok(Command::Cookie),
             [".quote"] => Ok(Command::Quote(None)),
             [".quote", category] => Ok(Command::Quote(Some(category.into()))),
+            [".list"] => Ok(Command::ListCommands),
             [".roll", ref commands..] => Ok(Command::Roll(create_dice(commands))),
 
             // bot options

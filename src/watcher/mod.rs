@@ -48,6 +48,7 @@ impl Watcher {
             Ok(command) => match command {
                 Command::Chuck => commands::chuck(sender),
                 Command::Cookie => commands::cookie(sender),
+                Command::ListCommands => commands::list_commands(),
                 Command::Quote(category) => commands::quote(sender, category),
                 Command::Roll(dice) => commands::roll(sender, dice),
 
