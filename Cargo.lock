@@ -109,7 +109,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "eirsee"
 version = "0.1.0"
-source = "git+https://github.com/archer884/eirsee.git#fb03d98363460a78e2a5bfc9b03ed60d24d76fa7"
+source = "git+https://github.com/archer884/eirsee.git#5fb2928f87d7f1511ff887451c2a8777ff543747"
 dependencies = [
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "native-tls 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

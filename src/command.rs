@@ -35,6 +35,7 @@ impl FromStr for Command {
             [".quote"] => Ok(Command::Quote(None)),
             [".quote", category] => Ok(Command::Quote(Some(category.into()))),
             [".list"] => Ok(Command::ListCommands),
+            [".list-categories"] | [".quote-categories"] => Ok(Command::QuoteCategories),
             [".roll", ref commands..] => Ok(Command::Roll(create_dice(commands))),
 
             // bot options
