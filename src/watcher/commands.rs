@@ -1,6 +1,6 @@
 use dice::Dice;
 use fortune_cookie;
-use icndb::next as get_awesome;
+use icndb::ApiClient;
 use watcher::Watcher;
 use eirsee::message::OutgoingMessage;
 
@@ -11,11 +11,10 @@ const DEFAULT_QUOTE: &'static str = "Talk low, talk slow, and don't say too much
 
 pub fn chuck(sender: String) -> Option<OutgoingMessage> {
     println!("{} has requested some CHUCK ACTION!", sender);
-    Some(
-        get_awesome()
-            .map(|res| OutgoingMessage::to_channel(res.joke))
-            .unwrap_or_else(|| OutgoingMessage::to_channel(String::from(DEFAULT_CHUCK)))
-    )
+    let client = ApiClient::new();
+    Some(client.next().ok()
+        .map(|res| OutgoingMessage::to_channel(res.content))
+        .unwrap_or_else(|| OutgoingMessage::to_channel(String::from(DEFAULT_CHUCK))))
 }
 
 pub fn cookie(sender: String) -> Option<OutgoingMessage> {
